@@ -4,11 +4,14 @@ require_once __DIR__ . '/autoload.php';
 
 use App\Controllers\AuthController;
 use App\Controllers\PanoramaController;
+use App\Controllers\MarkerController;
 
 $panoramaController = new PanoramaController();
+$markerController = new MarkerController();
 
-// Get panorama ID
+// Get panorama ID and optional marker ID for deep linking
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+$highlightMarkerId = isset($_GET['marker']) ? (int)$_GET['marker'] : null;
 
 if ($id <= 0) {
     header('HTTP/1.0 404 Not Found');
@@ -47,6 +50,12 @@ if (!$panoramaController->canView($panorama)) {
 $pageTitle = htmlspecialchars($panorama['title']) . ' - Viewer360';
 $currentPage = 'view';
 $isOwner = AuthController::getCurrentUserId() === (int)$panorama['user_id'];
+$isLoggedIn = AuthController::isLoggedIn();
+$currentUserId = AuthController::getCurrentUserId();
+
+// Get original panorama info if this is a fork
+$originalPanorama = $panoramaController->getOriginalPanorama($id);
+$forkCount = $panoramaController->getForkCount($id);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -61,6 +70,7 @@ $isOwner = AuthController::getCurrentUserId() === (int)$panorama['user_id'];
     
     <!-- Photo Sphere Viewer CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core/index.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/markers-plugin/index.min.css">
     
     <style>
         body, html {
@@ -151,6 +161,135 @@ $isOwner = AuthController::getCurrentUserId() === (int)$panorama['user_id'];
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        
+        /* Edit Mode Toggle */
+        .edit-mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+        }
+        
+        .edit-mode-toggle .form-check-input {
+            width: 3em;
+            height: 1.5em;
+            cursor: pointer;
+        }
+        
+        .edit-mode-toggle .form-check-input:checked {
+            background-color: #198754;
+            border-color: #198754;
+        }
+        
+        .edit-mode-indicator {
+            display: none;
+            position: fixed;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(25, 135, 84, 0.9);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: 500;
+            z-index: 1001;
+            backdrop-filter: blur(5px);
+        }
+        
+        .edit-mode-indicator.active {
+            display: block;
+        }
+        
+        /* Marker Modal */
+        .modal-backdrop {
+            z-index: 1050;
+        }
+        
+        .marker-modal {
+            z-index: 1060;
+        }
+        
+        /* Custom marker styles */
+        .custom-marker {
+            background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+            border: 3px solid white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .custom-marker:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        
+        .custom-marker.highlighted {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+            animation: pulse 1s ease-in-out 3;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.3); }
+        }
+        
+        /* Marker tooltip */
+        .marker-tooltip {
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            max-width: 250px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        
+        .marker-tooltip h6 {
+            margin: 0 0 5px 0;
+            font-weight: 600;
+        }
+        
+        .marker-tooltip p {
+            margin: 0;
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        .marker-tooltip .marker-meta {
+            margin-top: 8px;
+            font-size: 0.8em;
+            opacity: 0.7;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            padding-top: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .marker-tooltip .copy-link-btn {
+            padding: 2px 6px;
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+        
+        .marker-tooltip .copy-link-btn:hover {
+            opacity: 1;
+        }
+        
+        /* Fork/Remix info */
+        .fork-badge {
+            background: rgba(111, 66, 193, 0.9);
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+        }
+        
+        .fork-badge a {
+            color: white;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -172,12 +311,38 @@ $isOwner = AuthController::getCurrentUserId() === (int)$panorama['user_id'];
                 <?php else: ?>
                     <span class="ms-3"><i class="bi bi-lock"></i> Private</span>
                 <?php endif; ?>
+                <?php if ($forkCount > 0): ?>
+                    <span class="ms-3"><i class="bi bi-diagram-2"></i> <?= $forkCount ?> remix<?= $forkCount > 1 ? 'es' : '' ?></span>
+                <?php endif; ?>
+                <?php if ($originalPanorama): ?>
+                    <span class="ms-3 fork-badge">
+                        <i class="bi bi-arrow-return-left"></i> Remixed from 
+                        <a href="/view.php?id=<?= $originalPanorama['id'] ?>"><?= htmlspecialchars($originalPanorama['title']) ?></a>
+                    </span>
+                <?php endif; ?>
             </div>
         </div>
-        <div>
-            <?php if (AuthController::isLoggedIn()): ?>
+        <div class="d-flex align-items-center gap-2">
+            <?php if ($isOwner): ?>
+                <!-- Edit Mode Toggle for owners -->
+                <div class="edit-mode-toggle">
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="editModeToggle">
+                        <label class="form-check-label text-white" for="editModeToggle">Edit Mode</label>
+                    </div>
+                </div>
+            <?php endif; ?>
+            
+            <?php if ($isLoggedIn && !$isOwner && $panorama['is_public']): ?>
+                <!-- Save to Collection button for non-owners on public panoramas -->
+                <button class="btn btn-viewer btn-sm" id="saveToCollectionBtn">
+                    <i class="bi bi-bookmark-plus"></i> Save to My Collection
+                </button>
+            <?php endif; ?>
+            
+            <?php if ($isLoggedIn): ?>
                 <a href="/dashboard.php" class="btn btn-viewer btn-sm">
-                    <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    <i class="bi bi-arrow-left"></i> Dashboard
                 </a>
             <?php else: ?>
                 <a href="/" class="btn btn-viewer btn-sm">
@@ -185,6 +350,11 @@ $isOwner = AuthController::getCurrentUserId() === (int)$panorama['user_id'];
                 </a>
             <?php endif; ?>
         </div>
+    </div>
+    
+    <!-- Edit Mode Indicator -->
+    <div class="edit-mode-indicator" id="editModeIndicator">
+        <i class="bi bi-pencil"></i> Click anywhere to add a marker
     </div>
 
     <!-- 360 Viewer Container -->
@@ -198,12 +368,84 @@ $isOwner = AuthController::getCurrentUserId() === (int)$panorama['user_id'];
         </p>
     </div>
     <?php endif; ?>
+    
+    <!-- Add Marker Modal -->
+    <div class="modal fade marker-modal" id="addMarkerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-pin-map"></i> Add Marker</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addMarkerForm">
+                        <input type="hidden" id="markerYaw" name="yaw">
+                        <input type="hidden" id="markerPitch" name="pitch">
+                        <div class="mb-3">
+                            <label for="markerLabel" class="form-label">Label <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="markerLabel" name="label" required maxlength="200" placeholder="Enter a title for this marker">
+                        </div>
+                        <div class="mb-3">
+                            <label for="markerDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="markerDescription" name="description" rows="3" placeholder="Add more details about this location..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveMarkerBtn">
+                        <i class="bi bi-check-lg"></i> Save Marker
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Marker Modal -->
+    <div class="modal fade marker-modal" id="editMarkerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-pencil"></i> Edit Marker</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editMarkerForm">
+                        <input type="hidden" id="editMarkerId" name="id">
+                        <div class="mb-3">
+                            <label for="editMarkerLabel" class="form-label">Label <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editMarkerLabel" name="label" required maxlength="200">
+                        </div>
+                        <div class="mb-3">
+                            <label for="editMarkerDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="editMarkerDescription" name="description" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-danger" id="deleteMarkerBtn">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                    <div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" id="updateMarkerBtn">
+                            <i class="bi bi-check-lg"></i> Update
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- Photo Sphere Viewer JS -->
     <script type="importmap">
     {
         "imports": {
             "@photo-sphere-viewer/core": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core/index.module.min.js",
+            "@photo-sphere-viewer/markers-plugin": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/markers-plugin/index.module.min.js",
             "three": "https://cdn.jsdelivr.net/npm/three/build/three.module.min.js"
         }
     }
@@ -211,7 +453,19 @@ $isOwner = AuthController::getCurrentUserId() === (int)$panorama['user_id'];
     
     <script type="module">
         import { Viewer } from '@photo-sphere-viewer/core';
+        import { MarkersPlugin } from '@photo-sphere-viewer/markers-plugin';
         
+        // Configuration
+        const panoramaId = <?= $id ?>;
+        const isOwner = <?= $isOwner ? 'true' : 'false' ?>;
+        const isLoggedIn = <?= $isLoggedIn ? 'true' : 'false' ?>;
+        const highlightMarkerId = <?= $highlightMarkerId ? $highlightMarkerId : 'null' ?>;
+        
+        // State
+        let editMode = false;
+        let markersData = [];
+        
+        // Initialize viewer with markers plugin
         const viewer = new Viewer({
             container: document.querySelector('#viewer'),
             panorama: '/<?= htmlspecialchars($panorama['file_path']) ?>',
@@ -225,19 +479,359 @@ $isOwner = AuthController::getCurrentUserId() === (int)$panorama['user_id'];
                 'move',
                 'fullscreen'
             ],
-            plugins: []
+            plugins: [
+                [MarkersPlugin, {
+                    markers: []
+                }]
+            ]
         });
         
-        // Hide loading overlay when panorama is ready
+        const markersPlugin = viewer.getPlugin(MarkersPlugin);
+        
+        // ========== MARKER FUNCTIONS ==========
+        
+        // Create marker element for Photo Sphere Viewer
+        function createMarkerConfig(marker, isHighlighted = false) {
+            const shareUrl = `${window.location.origin}/view.php?id=${panoramaId}&marker=${marker.id}`;
+            const tooltipContent = `
+                <div class="marker-tooltip">
+                    <h6>${escapeHtml(marker.label)}</h6>
+                    ${marker.description ? `<p>${escapeHtml(marker.description)}</p>` : ''}
+                    <div class="marker-meta">
+                        <i class="bi bi-person"></i> ${escapeHtml(marker.username || 'Unknown')}
+                        <button class="btn btn-sm btn-outline-light ms-2 copy-link-btn" 
+                                onclick="copyMarkerLink(${marker.id}); event.stopPropagation();" 
+                                title="Copy link to this marker">
+                            <i class="bi bi-link-45deg"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            return {
+                id: `marker-${marker.id}`,
+                position: { yaw: parseFloat(marker.yaw), pitch: parseFloat(marker.pitch) },
+                html: `<div class="custom-marker ${isHighlighted ? 'highlighted' : ''}" data-marker-id="${marker.id}"></div>`,
+                anchor: 'center center',
+                tooltip: {
+                    content: tooltipContent,
+                    position: 'top center',
+                    trigger: 'hover'
+                },
+                data: marker
+            };
+        }
+        
+        // Copy marker deep link to clipboard
+        window.copyMarkerLink = function(markerId) {
+            const url = `${window.location.origin}/view.php?id=${panoramaId}&marker=${markerId}`;
+            navigator.clipboard.writeText(url).then(() => {
+                // Show a brief success message
+                const btn = document.querySelector(`.copy-link-btn`);
+                if (btn) {
+                    const originalHTML = btn.innerHTML;
+                    btn.innerHTML = '<i class="bi bi-check"></i>';
+                    setTimeout(() => { btn.innerHTML = originalHTML; }, 1500);
+                }
+            }).catch(() => {
+                // Fallback for older browsers
+                prompt('Copy this link:', url);
+            });
+        };
+        
+        // Load markers from API
+        async function loadMarkers() {
+            try {
+                const response = await fetch(`/api.php?action=marker/list&panorama_id=${panoramaId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    markersData = data.markers;
+                    renderMarkers();
+                }
+            } catch (error) {
+                console.error('Failed to load markers:', error);
+            }
+        }
+        
+        // Render markers on the viewer
+        function renderMarkers() {
+            // Clear existing markers
+            markersPlugin.clearMarkers();
+            
+            // Add each marker
+            markersData.forEach(marker => {
+                const isHighlighted = highlightMarkerId && parseInt(marker.id) === highlightMarkerId;
+                markersPlugin.addMarker(createMarkerConfig(marker, isHighlighted));
+            });
+        }
+        
+        // Create a new marker
+        async function createMarker(yaw, pitch, label, description) {
+            try {
+                const response = await fetch('/api.php?action=marker/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        panorama_id: panoramaId,
+                        yaw: yaw,
+                        pitch: pitch,
+                        label: label,
+                        description: description,
+                        type: 'text'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Add to local data and render
+                    data.marker.username = '<?= htmlspecialchars(addslashes(AuthController::getCurrentUsername() ?? '')) ?>';
+                    markersData.push(data.marker);
+                    markersPlugin.addMarker(createMarkerConfig(data.marker));
+                    return true;
+                } else {
+                    alert(data.error || 'Failed to create marker');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Failed to create marker:', error);
+                alert('Failed to create marker. Please try again.');
+                return false;
+            }
+        }
+        
+        // Update a marker
+        async function updateMarker(id, label, description) {
+            try {
+                const response = await fetch('/api.php?action=marker/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: id,
+                        label: label,
+                        description: description,
+                        type: 'text'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Update local data
+                    const markerIndex = markersData.findIndex(m => parseInt(m.id) === id);
+                    if (markerIndex !== -1) {
+                        markersData[markerIndex].label = label;
+                        markersData[markerIndex].description = description;
+                        
+                        // Update the marker in the viewer
+                        markersPlugin.updateMarker(createMarkerConfig(markersData[markerIndex]));
+                    }
+                    return true;
+                } else {
+                    alert(data.error || 'Failed to update marker');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Failed to update marker:', error);
+                alert('Failed to update marker. Please try again.');
+                return false;
+            }
+        }
+        
+        // Delete a marker
+        async function deleteMarker(id) {
+            try {
+                const response = await fetch('/api.php?action=marker/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: id })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Remove from local data
+                    markersData = markersData.filter(m => parseInt(m.id) !== id);
+                    markersPlugin.removeMarker(`marker-${id}`);
+                    return true;
+                } else {
+                    alert(data.error || 'Failed to delete marker');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Failed to delete marker:', error);
+                alert('Failed to delete marker. Please try again.');
+                return false;
+            }
+        }
+        
+        // ========== DEEP LINKING ==========
+        
+        function animateToMarker(markerId) {
+            const marker = markersData.find(m => parseInt(m.id) === markerId);
+            if (marker) {
+                // Animate camera to the marker position
+                viewer.animate({
+                    yaw: parseFloat(marker.yaw),
+                    pitch: parseFloat(marker.pitch),
+                    zoom: 50,
+                    speed: '2rpm'
+                }).then(() => {
+                    // Highlight effect is already applied via the highlighted class
+                    console.log('Animated to marker:', markerId);
+                });
+            }
+        }
+        
+        // ========== FORK/SAVE TO COLLECTION ==========
+        
+        async function forkPanorama() {
+            try {
+                const response = await fetch('/api.php?action=panorama/fork', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ panorama_id: panoramaId })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(data.message);
+                    // Redirect to the new panorama
+                    window.location.href = `/view.php?id=${data.panorama_id}`;
+                } else {
+                    alert(data.error || 'Failed to save to collection');
+                }
+            } catch (error) {
+                console.error('Failed to fork panorama:', error);
+                alert('Failed to save to collection. Please try again.');
+            }
+        }
+        
+        // ========== HELPER FUNCTIONS ==========
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // ========== EVENT HANDLERS ==========
+        
+        // Hide loading overlay and initialize when ready
         viewer.addEventListener('ready', () => {
             document.getElementById('loadingOverlay').classList.add('hidden');
+            
+            // Load markers
+            loadMarkers().then(() => {
+                // Handle deep linking - animate to marker if specified
+                if (highlightMarkerId) {
+                    setTimeout(() => animateToMarker(highlightMarkerId), 500);
+                }
+            });
         });
         
-        // Auto-rotate
-        viewer.addEventListener('ready', () => {
-            // Optionally start auto-rotation
-            // viewer.startAutoRotate();
+        // Edit mode toggle
+        const editModeToggle = document.getElementById('editModeToggle');
+        const editModeIndicator = document.getElementById('editModeIndicator');
+        
+        if (editModeToggle) {
+            editModeToggle.addEventListener('change', (e) => {
+                editMode = e.target.checked;
+                editModeIndicator.classList.toggle('active', editMode);
+            });
+        }
+        
+        // Click on sphere to add marker (when in edit mode)
+        viewer.addEventListener('click', (e) => {
+            if (!editMode || !isOwner) return;
+            
+            // Get position where user clicked
+            const position = e.data.rightclick ? null : e.data;
+            if (!position || !position.yaw || !position.pitch) return;
+            
+            // Open add marker modal
+            document.getElementById('markerYaw').value = position.yaw;
+            document.getElementById('markerPitch').value = position.pitch;
+            document.getElementById('markerLabel').value = '';
+            document.getElementById('markerDescription').value = '';
+            
+            const modal = new bootstrap.Modal(document.getElementById('addMarkerModal'));
+            modal.show();
         });
+        
+        // Save marker button
+        document.getElementById('saveMarkerBtn').addEventListener('click', async () => {
+            const yaw = parseFloat(document.getElementById('markerYaw').value);
+            const pitch = parseFloat(document.getElementById('markerPitch').value);
+            const label = document.getElementById('markerLabel').value.trim();
+            const description = document.getElementById('markerDescription').value.trim();
+            
+            if (!label) {
+                alert('Please enter a label for the marker');
+                return;
+            }
+            
+            const success = await createMarker(yaw, pitch, label, description);
+            if (success) {
+                bootstrap.Modal.getInstance(document.getElementById('addMarkerModal')).hide();
+            }
+        });
+        
+        // Click on marker to edit (when in edit mode and owner)
+        markersPlugin.addEventListener('select-marker', (e) => {
+            const markerData = e.marker.config.data;
+            
+            if (editMode && isOwner && markerData) {
+                // Open edit modal
+                document.getElementById('editMarkerId').value = markerData.id;
+                document.getElementById('editMarkerLabel').value = markerData.label || '';
+                document.getElementById('editMarkerDescription').value = markerData.description || '';
+                
+                const modal = new bootstrap.Modal(document.getElementById('editMarkerModal'));
+                modal.show();
+            }
+        });
+        
+        // Update marker button
+        document.getElementById('updateMarkerBtn').addEventListener('click', async () => {
+            const id = parseInt(document.getElementById('editMarkerId').value);
+            const label = document.getElementById('editMarkerLabel').value.trim();
+            const description = document.getElementById('editMarkerDescription').value.trim();
+            
+            if (!label) {
+                alert('Please enter a label for the marker');
+                return;
+            }
+            
+            const success = await updateMarker(id, label, description);
+            if (success) {
+                bootstrap.Modal.getInstance(document.getElementById('editMarkerModal')).hide();
+            }
+        });
+        
+        // Delete marker button
+        document.getElementById('deleteMarkerBtn').addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to delete this marker?')) return;
+            
+            const id = parseInt(document.getElementById('editMarkerId').value);
+            const success = await deleteMarker(id);
+            if (success) {
+                bootstrap.Modal.getInstance(document.getElementById('editMarkerModal')).hide();
+            }
+        });
+        
+        // Save to collection button
+        const saveToCollectionBtn = document.getElementById('saveToCollectionBtn');
+        if (saveToCollectionBtn) {
+            saveToCollectionBtn.addEventListener('click', () => {
+                if (confirm('Save this panorama to your collection? You will be able to add your own markers.')) {
+                    forkPanorama();
+                }
+            });
+        }
     </script>
 </body>
 </html>

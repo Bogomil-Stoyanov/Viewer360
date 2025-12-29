@@ -150,6 +150,14 @@ include __DIR__ . '/../views/header.php';
                                      style="height: 150px; object-fit: cover;">
                                 <div class="card-body">
                                     <h5 class="card-title"><?= htmlspecialchars($panorama['title']) ?></h5>
+                                    <?php if (!empty($panorama['original_panorama_id'])): ?>
+                                        <div class="mb-2">
+                                            <span class="badge bg-purple" style="background-color: #6f42c1;">
+                                                <i class="bi bi-arrow-return-left"></i> Remixed from 
+                                                <?= htmlspecialchars($panorama['original_username'] ?? 'Unknown') ?>
+                                            </span>
+                                        </div>
+                                    <?php endif; ?>
                                     <?php if ($panorama['description']): ?>
                                         <p class="card-text text-muted small">
                                             <?= htmlspecialchars(substr($panorama['description'], 0, 100)) ?>

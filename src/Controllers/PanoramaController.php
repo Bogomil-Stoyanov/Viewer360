@@ -103,10 +103,13 @@ class PanoramaController
     public function getUserPanoramas(int $userId): array
     {
         $stmt = Database::query(
-            "SELECT id, file_path, title, description, is_public, created_at 
-             FROM panoramas 
-             WHERE user_id = ? 
-             ORDER BY created_at DESC",
+            "SELECT p.id, p.file_path, p.title, p.description, p.is_public, p.original_panorama_id, p.created_at,
+                    op.title as original_title, ou.username as original_username
+             FROM panoramas p
+             LEFT JOIN panoramas op ON p.original_panorama_id = op.id
+             LEFT JOIN users ou ON op.user_id = ou.id
+             WHERE p.user_id = ? 
+             ORDER BY p.created_at DESC",
             [$userId]
         );
 
@@ -156,13 +159,24 @@ class PanoramaController
         }
 
         try {
+            // Check if this file is used by other panoramas (forks or original)
+            $filePath = $panorama['file_path'];
+            $stmt = Database::query(
+                "SELECT COUNT(*) as count FROM panoramas WHERE file_path = ? AND id != ?",
+                [$filePath, $id]
+            );
+            $result = $stmt->fetch();
+            $isSharedFile = (int)($result['count'] ?? 0) > 0;
+            
             // Delete from database
             Database::query("DELETE FROM panoramas WHERE id = ?", [$id]);
 
-            // Delete physical file
-            $filePath = __DIR__ . '/../../public/' . $panorama['file_path'];
-            if (file_exists($filePath)) {
-                unlink($filePath);
+            // Only delete physical file if no other panoramas use it
+            if (!$isSharedFile) {
+                $fullPath = __DIR__ . '/../../public/' . $filePath;
+                if (file_exists($fullPath)) {
+                    unlink($fullPath);
+                }
             }
 
             return ['success' => true, 'message' => 'Panorama deleted successfully.'];
@@ -184,5 +198,98 @@ class PanoramaController
             UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload.',
             default => 'Unknown upload error.',
         };
+    }
+
+    /**
+     * Fork/Remix a public panorama to user's collection
+     * Does NOT duplicate the physical file - only creates a new DB reference
+     */
+    public function forkPanorama(int $sourceId, int $newUserId): array
+    {
+        // Get source panorama
+        $source = $this->getPanorama($sourceId);
+
+        if (!$source) {
+            return ['success' => false, 'error' => 'Source panorama not found.'];
+        }
+
+        // Only allow forking public panoramas
+        if (!$source['is_public']) {
+            return ['success' => false, 'error' => 'Only public panoramas can be saved to your collection.'];
+        }
+
+        // Don't allow forking own panoramas
+        if ((int)$source['user_id'] === $newUserId) {
+            return ['success' => false, 'error' => 'This panorama is already in your collection.'];
+        }
+
+        // Check if user already forked this panorama
+        $existing = Database::query(
+            "SELECT id FROM panoramas WHERE user_id = ? AND original_panorama_id = ?",
+            [$newUserId, $sourceId]
+        )->fetch();
+
+        if ($existing) {
+            return ['success' => false, 'error' => 'You have already saved this panorama to your collection.'];
+        }
+
+        try {
+            // Create new panorama entry pointing to same file
+            Database::query(
+                "INSERT INTO panoramas (user_id, file_path, title, description, is_public, original_panorama_id) 
+                 VALUES (?, ?, ?, ?, ?, ?)",
+                [
+                    $newUserId,
+                    $source['file_path'],  // Same file path - no duplication!
+                    $source['title'] . ' (Remixed)',
+                    $source['description'],
+                    0,  // Start as private
+                    $sourceId  // Track the original
+                ]
+            );
+
+            $newPanoramaId = (int)Database::lastInsertId();
+
+            // Copy all markers from source to new panorama
+            $markerController = new MarkerController();
+            $markerController->copyMarkers($sourceId, $newPanoramaId, $newUserId);
+
+            return [
+                'success' => true,
+                'message' => 'Panorama saved to your collection!',
+                'panorama_id' => $newPanoramaId
+            ];
+        } catch (\PDOException $e) {
+            error_log("Fork panorama error: " . $e->getMessage());
+            return ['success' => false, 'error' => 'Failed to save panorama to your collection.'];
+        }
+    }
+
+    /**
+     * Check if a panorama is a fork of another
+     */
+    public function getOriginalPanorama(int $panoramaId): ?array
+    {
+        $panorama = $this->getPanorama($panoramaId);
+        
+        if (!$panorama || !$panorama['original_panorama_id']) {
+            return null;
+        }
+
+        return $this->getPanorama((int)$panorama['original_panorama_id']);
+    }
+
+    /**
+     * Get count of forks for a panorama
+     */
+    public function getForkCount(int $panoramaId): int
+    {
+        $stmt = Database::query(
+            "SELECT COUNT(*) as count FROM panoramas WHERE original_panorama_id = ?",
+            [$panoramaId]
+        );
+        
+        $result = $stmt->fetch();
+        return (int)($result['count'] ?? 0);
     }
 }
