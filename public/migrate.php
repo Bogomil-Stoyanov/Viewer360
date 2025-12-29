@@ -1,10 +1,17 @@
 <?php
 /**
  * Database Migration Script
- * Run this to add the markers table and original_panorama_id column
  * 
  * Usage: php migrate.php
+ * 
+ * WARNING: This script can only be run from the command line for security.
  */
+
+// Security: Only allow CLI execution
+if (php_sapi_name() !== 'cli') {
+    http_response_code(403);
+    die('Access denied. This script can only be run from the command line.');
+}
 
 require_once __DIR__ . '/autoload.php';
 
