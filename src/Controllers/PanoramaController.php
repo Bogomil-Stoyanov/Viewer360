@@ -335,4 +335,25 @@ class PanoramaController
         $result = $stmt->fetch();
         return (int)($result['count'] ?? 0);
     }
+
+    /**
+     * Get user's panoramas for portal linking dropdown
+     * Returns simplified list with id and title
+     */
+    public function getUserPanoramasForLinking(int $userId, ?int $excludeId = null): array
+    {
+        if ($excludeId !== null) {
+            $stmt = Database::query(
+                "SELECT id, title, file_path FROM panoramas WHERE user_id = ? AND id != ? ORDER BY title ASC",
+                [$userId, $excludeId]
+            );
+        } else {
+            $stmt = Database::query(
+                "SELECT id, title, file_path FROM panoramas WHERE user_id = ? ORDER BY title ASC",
+                [$userId]
+            );
+        }
+
+        return $stmt->fetchAll();
+    }
 }

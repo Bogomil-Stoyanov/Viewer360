@@ -8,10 +8,13 @@ A web-based platform for uploading, viewing, and sharing panoramic (equirectangu
 - **Image Upload**: Support for JPG/PNG panoramic images up to 50MB
 - **360° Viewer**: Interactive panoramic viewer using Photo Sphere Viewer
 - **Interactive Markers**: Add, edit, and color-code annotation markers on panoramas
+- **Audio Attachments**: Attach MP3, WAV, or OGG audio to markers (15MB limit)
+- **Virtual Tour Mode**: Create portal markers that link panoramas together, similar to Google Street View
 - **Deep Linking**: Share direct links to specific markers within panoramas
 - **Fork/Remix**: Save public panoramas to your collection with preserved marker attribution
 - **Privacy Controls**: Make panoramas public or private
 - **Panorama Editing**: Update title, description, and visibility settings
+- **Voting System**: Upvote/downvote public panoramas
 - **Dockerized**: Complete Docker setup with PHP, MySQL, and phpMyAdmin
 
 ## Tech Stack
@@ -122,19 +125,21 @@ Viewer360/
 
 ### markers
 
-| Column      | Type         | Description              |
-| ----------- | ------------ | ------------------------ |
-| id          | INT          | Primary key              |
-| panorama_id | INT          | Foreign key to panoramas |
-| user_id     | INT          | Foreign key to users     |
-| yaw         | DOUBLE       | Horizontal position      |
-| pitch       | DOUBLE       | Vertical position        |
-| type        | VARCHAR(50)  | Marker type (text)       |
-| color       | VARCHAR(20)  | Marker color             |
-| label       | VARCHAR(200) | Marker title             |
-| description | TEXT         | Optional description     |
-| created_at  | TIMESTAMP    | Creation date            |
-| updated_at  | TIMESTAMP    | Last update date         |
+| Column             | Type         | Description                           |
+| ------------------ | ------------ | ------------------------------------- |
+| id                 | INT          | Primary key                           |
+| panorama_id        | INT          | Foreign key to panoramas              |
+| user_id            | INT          | Foreign key to users                  |
+| yaw                | DOUBLE       | Horizontal position                   |
+| pitch              | DOUBLE       | Vertical position                     |
+| type               | VARCHAR(50)  | Marker type (text, portal)            |
+| color              | VARCHAR(20)  | Marker color                          |
+| label              | VARCHAR(200) | Marker title                          |
+| description        | TEXT         | Optional description                  |
+| audio_path         | VARCHAR(255) | Path to attached audio file           |
+| target_panorama_id | INT          | Target panorama for portal markers    |
+| created_at         | TIMESTAMP    | Creation date                         |
+| updated_at         | TIMESTAMP    | Last update date                      |
 
 ## Security Features
 

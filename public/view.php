@@ -253,6 +253,25 @@ $forkCount = $panoramaController->getForkCount($id);
             box-shadow: 0 0 15px rgba(13, 110, 253, 0.6);
         }
         
+        /* Portal marker styles */
+        .custom-marker.is-portal {
+            width: 32px;
+            height: 32px;
+            border-width: 3px;
+            border-style: dashed;
+        }
+        
+        .custom-marker.is-portal .portal-icon {
+            color: white;
+            font-size: 14px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .custom-marker.is-portal:hover {
+            transform: scale(1.25);
+            box-shadow: 0 0 20px rgba(25, 135, 84, 0.6);
+        }
+
         @keyframes audio-pulse {
             from { transform: scale(1); }
             to { transform: scale(1.15); }
@@ -678,6 +697,15 @@ $forkCount = $panoramaController->getForkCount($id);
                                    accept=".mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg">
                             <div class="form-text">MP3, WAV, or OGG. Max 15MB.</div>
                         </div>
+                        <div class="mb-3">
+                            <label for="markerTargetPanorama" class="form-label">
+                                <i class="bi bi-box-arrow-up-right"></i> Link to Scene (Portal Marker)
+                            </label>
+                            <select class="form-select" id="markerTargetPanorama" name="target_panorama_id">
+                                <option value="">No link (regular marker)</option>
+                            </select>
+                            <div class="form-text">Create a portal that navigates to another panorama when clicked.</div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -745,6 +773,15 @@ $forkCount = $panoramaController->getForkCount($id);
                                    accept=".mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg">
                             <div class="form-text">MP3, WAV, or OGG. Max 15MB. Upload to replace existing.</div>
                         </div>
+                        <div class="mb-3">
+                            <label for="editMarkerTargetPanorama" class="form-label">
+                                <i class="bi bi-box-arrow-up-right"></i> Link to Scene (Portal Marker)
+                            </label>
+                            <select class="form-select" id="editMarkerTargetPanorama" name="target_panorama_id">
+                                <option value="">No link (regular marker)</option>
+                            </select>
+                            <div class="form-text">Create a portal that navigates to another panorama when clicked.</div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer justify-content-between">
@@ -791,6 +828,7 @@ $forkCount = $panoramaController->getForkCount($id);
         let markersData = [];
         let currentAudio = null;  // Currently playing audio
         let currentPlayingMarkerId = null;  // ID of marker whose audio is playing
+        let userPanoramas = [];  // User's panoramas for portal linking
         
         // Color mapping
         const colorMap = {
@@ -845,13 +883,28 @@ $forkCount = $panoramaController->getForkCount($id);
             const shareUrl = `${window.location.origin}/view.php?id=${panoramaId}&marker=${marker.id}`;
             const markerColor = marker.color || 'blue';
             const hasAudio = marker.audio_path && marker.audio_path.length > 0;
+            const isPortal = marker.target_panorama_id && marker.target_panorama_id > 0;
             const audioIndicator = hasAudio ? '<i class="bi bi-volume-up"></i> ' : '';
+            const portalIndicator = isPortal ? '<i class="bi bi-box-arrow-up-right"></i> ' : '';
+            
+            // Get target panorama info for portal markers
+            let portalInfo = '';
+            if (isPortal) {
+                const targetPano = userPanoramas.find(p => parseInt(p.id) === parseInt(marker.target_panorama_id));
+                if (targetPano) {
+                    portalInfo = `<p class="text-success small mb-1"><i class="bi bi-signpost-2"></i> Leads to: ${escapeHtml(targetPano.title)}</p>`;
+                } else {
+                    portalInfo = `<p class="text-success small mb-1"><i class="bi bi-signpost-2"></i> Portal to another scene</p>`;
+                }
+            }
             
             const tooltipContent = `
                 <div class="marker-tooltip">
-                    <h6>${audioIndicator}${escapeHtml(marker.label)}</h6>
+                    <h6>${portalIndicator}${audioIndicator}${escapeHtml(marker.label)}</h6>
                     ${marker.description ? `<p>${escapeHtml(marker.description)}</p>` : ''}
-                    ${hasAudio ? '<p class="text-info small mb-1"><i class="bi bi-music-note"></i> Click marker to play/pause audio</p>' : ''}
+                    ${portalInfo}
+                    ${hasAudio && !isPortal ? '<p class="text-info small mb-1"><i class="bi bi-music-note"></i> Click marker to play/pause audio</p>' : ''}
+                    ${isPortal ? '<p class="text-warning small mb-1"><i class="bi bi-arrow-right-circle"></i> Click marker to navigate</p>' : ''}
                     <div class="marker-meta">
                         <i class="bi bi-person"></i> ${escapeHtml(marker.username || 'Unknown')}
                         <button class="btn btn-sm btn-outline-light ms-2 copy-link-btn" 
@@ -866,16 +919,20 @@ $forkCount = $panoramaController->getForkCount($id);
             const markerGradient = getMarkerGradient(markerColor, isHighlighted);
             const borderColor = markerColor === 'white' ? '#ccc' : 'white';
             const audioClass = hasAudio ? 'has-audio' : '';
-            const audioIcon = hasAudio ? '<i class="bi bi-volume-up audio-icon"></i>' : '';
+            const portalClass = isPortal ? 'is-portal' : '';
+            const audioIcon = hasAudio && !isPortal ? '<i class="bi bi-volume-up audio-icon"></i>' : '';
+            const portalIcon = isPortal ? '<i class="bi bi-arrow-right-circle-fill portal-icon"></i>' : '';
             
             return {
                 id: `marker-${marker.id}`,
                 position: { yaw: parseFloat(marker.yaw), pitch: parseFloat(marker.pitch) },
-                html: `<div class="custom-marker ${audioClass} ${isHighlighted ? 'highlighted' : ''}" 
+                html: `<div class="custom-marker ${audioClass} ${portalClass} ${isHighlighted ? 'highlighted' : ''}" 
                             data-marker-id="${marker.id}" 
                             data-has-audio="${hasAudio}"
                             data-audio-path="${hasAudio ? marker.audio_path : ''}"
-                            style="background: ${markerGradient}; border-color: ${borderColor};">${audioIcon}</div>`,
+                            data-is-portal="${isPortal}"
+                            data-target-panorama="${isPortal ? marker.target_panorama_id : ''}"
+                            style="background: ${markerGradient}; border-color: ${borderColor};">${audioIcon}${portalIcon}</div>`,
                 anchor: 'center center',
                 tooltip: {
                     content: tooltipContent,
@@ -918,6 +975,40 @@ $forkCount = $panoramaController->getForkCount($id);
             }
         }
         
+        // Load user's panoramas for portal linking dropdown
+        async function loadUserPanoramas() {
+            if (!isOwner) return;  // Only load for owner
+            
+            try {
+                const response = await fetch(`/api.php?action=panorama/user-list&exclude_id=${panoramaId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    userPanoramas = data.panoramas;
+                    populatePortalDropdowns();
+                }
+            } catch (error) {
+                console.error('Failed to load user panoramas:', error);
+            }
+        }
+        
+        // Populate portal dropdown menus with user's panoramas
+        function populatePortalDropdowns() {
+            const addSelect = document.getElementById('markerTargetPanorama');
+            const editSelect = document.getElementById('editMarkerTargetPanorama');
+            
+            const options = userPanoramas.map(p => 
+                `<option value="${p.id}">${escapeHtml(p.title)}</option>`
+            ).join('');
+            
+            if (addSelect) {
+                addSelect.innerHTML = '<option value="">No link (regular marker)</option>' + options;
+            }
+            if (editSelect) {
+                editSelect.innerHTML = '<option value="">No link (regular marker)</option>' + options;
+            }
+        }
+        
         // Render markers on the viewer
         function renderMarkers() {
             // Clear existing markers
@@ -954,11 +1045,13 @@ $forkCount = $panoramaController->getForkCount($id);
                 const markerColor = marker.color || 'blue';
                 const colorHex = colorMap[markerColor] || colorMap['blue'];
                 const hasAudio = marker.audio_path && marker.audio_path.length > 0;
+                const isPortal = marker.target_panorama_id && marker.target_panorama_id > 0;
                 const audioIcon = hasAudio ? '<i class="bi bi-volume-up text-info me-1" title="Has audio"></i>' : '';
+                const portalIcon = isPortal ? '<i class="bi bi-box-arrow-up-right text-success me-1" title="Portal to another scene"></i>' : '';
                 return `
-                    <div class="marker-list-item" data-marker-id="${marker.id}" onclick="navigateToMarker(${marker.id})">
+                    <div class="marker-list-item ${isPortal ? 'is-portal' : ''}" data-marker-id="${marker.id}" onclick="navigateToMarker(${marker.id})">
                         <div class="marker-color-dot" style="background: ${colorHex};"></div>
-                        ${audioIcon}
+                        ${portalIcon}${audioIcon}
                         <span class="label">${escapeHtml(marker.label)}</span>
                         <i class="bi bi-chevron-right arrow"></i>
                     </div>
@@ -977,7 +1070,7 @@ $forkCount = $panoramaController->getForkCount($id);
         };
         
         // Create a new marker
-        async function createMarker(yaw, pitch, label, description, color, audioFile = null) {
+        async function createMarker(yaw, pitch, label, description, color, audioFile = null, targetPanoramaId = null) {
             try {
                 // Use FormData for multipart/form-data (required for file uploads)
                 const formData = new FormData();
@@ -987,10 +1080,14 @@ $forkCount = $panoramaController->getForkCount($id);
                 formData.append('label', label);
                 formData.append('description', description);
                 formData.append('color', color);
-                formData.append('type', 'text');
+                formData.append('type', targetPanoramaId ? 'portal' : 'text');
                 
                 if (audioFile) {
                     formData.append('audio_file', audioFile);
+                }
+                
+                if (targetPanoramaId) {
+                    formData.append('target_panorama_id', targetPanoramaId);
                 }
                 
                 const response = await fetch('/api.php?action=marker/create', {
@@ -1019,7 +1116,7 @@ $forkCount = $panoramaController->getForkCount($id);
         }
         
         // Update a marker
-        async function updateMarker(id, label, description, color, audioFile = null, removeAudio = false) {
+        async function updateMarker(id, label, description, color, audioFile = null, removeAudio = false, targetPanoramaId = null) {
             try {
                 // Use FormData for multipart/form-data (required for file uploads)
                 const formData = new FormData();
@@ -1027,11 +1124,15 @@ $forkCount = $panoramaController->getForkCount($id);
                 formData.append('label', label);
                 formData.append('description', description);
                 formData.append('color', color);
-                formData.append('type', 'text');
+                formData.append('type', targetPanoramaId ? 'portal' : 'text');
                 formData.append('remove_audio', removeAudio ? '1' : '0');
                 
                 if (audioFile) {
                     formData.append('audio_file', audioFile);
+                }
+                
+                if (targetPanoramaId) {
+                    formData.append('target_panorama_id', targetPanoramaId);
                 }
                 
                 const response = await fetch('/api.php?action=marker/update', {
@@ -1049,6 +1150,8 @@ $forkCount = $panoramaController->getForkCount($id);
                         markersData[markerIndex].description = description;
                         markersData[markerIndex].color = color;
                         markersData[markerIndex].audio_path = data.marker.audio_path;
+                        markersData[markerIndex].target_panorama_id = data.marker.target_panorama_id;
+                        markersData[markerIndex].type = data.marker.type;
                         
                         // Update the marker in the viewer
                         markersPlugin.updateMarker(createMarkerConfig(markersData[markerIndex]));
@@ -1213,12 +1316,15 @@ $forkCount = $panoramaController->getForkCount($id);
         viewer.addEventListener('ready', () => {
             document.getElementById('loadingOverlay').classList.add('hidden');
             
-            // Load markers
-            loadMarkers().then(() => {
-                // Handle deep linking - animate to marker if specified
-                if (highlightMarkerId) {
-                    setTimeout(() => animateToMarker(highlightMarkerId), 500);
-                }
+            // Load user's panoramas for portal linking (before loading markers)
+            loadUserPanoramas().then(() => {
+                // Load markers
+                loadMarkers().then(() => {
+                    // Handle deep linking - animate to marker if specified
+                    if (highlightMarkerId) {
+                        setTimeout(() => animateToMarker(highlightMarkerId), 500);
+                    }
+                });
             });
         });
         
@@ -1247,6 +1353,8 @@ $forkCount = $panoramaController->getForkCount($id);
             document.getElementById('markerLabel').value = '';
             document.getElementById('markerDescription').value = '';
             document.getElementById('markerColor').value = 'blue';
+            document.getElementById('markerAudio').value = '';
+            document.getElementById('markerTargetPanorama').value = '';
             
             // Reset color picker selection
             document.querySelectorAll('#addColorPicker .color-option').forEach(opt => {
@@ -1283,6 +1391,8 @@ $forkCount = $panoramaController->getForkCount($id);
             const color = document.getElementById('markerColor').value;
             const audioInput = document.getElementById('markerAudio');
             const audioFile = audioInput.files.length > 0 ? audioInput.files[0] : null;
+            const targetPanoramaSelect = document.getElementById('markerTargetPanorama');
+            const targetPanoramaId = targetPanoramaSelect.value ? parseInt(targetPanoramaSelect.value) : null;
             
             if (!label) {
                 alert('Please enter a label for the marker');
@@ -1295,7 +1405,7 @@ $forkCount = $panoramaController->getForkCount($id);
                 return;
             }
             
-            const success = await createMarker(yaw, pitch, label, description, color, audioFile);
+            const success = await createMarker(yaw, pitch, label, description, color, audioFile, targetPanoramaId);
             if (success) {
                 bootstrap.Modal.getInstance(document.getElementById('addMarkerModal')).hide();
                 // Reset audio input
@@ -1303,9 +1413,15 @@ $forkCount = $panoramaController->getForkCount($id);
             }
         });
         
-        // Click on marker to edit (when in edit mode and owner) OR play audio
+        // Click on marker to edit (when in edit mode and owner) OR play audio OR navigate (portal)
         markersPlugin.addEventListener('select-marker', (e) => {
             const markerData = e.marker.config.data;
+            
+            // If marker is a portal and NOT in edit mode, navigate to target panorama
+            if (markerData && markerData.target_panorama_id && !editMode) {
+                navigateToPortal(markerData.target_panorama_id);
+                return;
+            }
             
             // If marker has audio and NOT in edit mode, toggle audio playback
             if (markerData && markerData.audio_path && !editMode) {
@@ -1329,6 +1445,12 @@ $forkCount = $panoramaController->getForkCount($id);
                 document.getElementById('editRemoveAudio').value = '0';
                 document.getElementById('editMarkerAudio').value = '';
                 
+                // Set target panorama dropdown
+                const targetPanoramaSelect = document.getElementById('editMarkerTargetPanorama');
+                if (targetPanoramaSelect) {
+                    targetPanoramaSelect.value = markerData.target_panorama_id || '';
+                }
+                
                 // Show/hide current audio info
                 const currentAudioDiv = document.getElementById('editCurrentAudio');
                 if (markerData.audio_path) {
@@ -1349,6 +1471,36 @@ $forkCount = $panoramaController->getForkCount($id);
             }
         });
         
+        // Navigate to target panorama (portal marker click)
+        function navigateToPortal(targetPanoramaId) {
+            // Add fade-to-black transition effect
+            const overlay = document.createElement('div');
+            overlay.className = 'portal-transition-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: black;
+                opacity: 0;
+                z-index: 9999;
+                transition: opacity 0.5s ease;
+                pointer-events: none;
+            `;
+            document.body.appendChild(overlay);
+            
+            // Trigger fade to black
+            requestAnimationFrame(() => {
+                overlay.style.opacity = '1';
+            });
+            
+            // Navigate after fade completes
+            setTimeout(() => {
+                window.location.href = `/view.php?id=${targetPanoramaId}`;
+            }, 500);
+        }
+        
         // Update marker button
         document.getElementById('updateMarkerBtn').addEventListener('click', async () => {
             const id = parseInt(document.getElementById('editMarkerId').value);
@@ -1358,6 +1510,8 @@ $forkCount = $panoramaController->getForkCount($id);
             const removeAudio = document.getElementById('editRemoveAudio').value === '1';
             const audioInput = document.getElementById('editMarkerAudio');
             const audioFile = audioInput.files.length > 0 ? audioInput.files[0] : null;
+            const targetPanoramaSelect = document.getElementById('editMarkerTargetPanorama');
+            const targetPanoramaId = targetPanoramaSelect && targetPanoramaSelect.value ? parseInt(targetPanoramaSelect.value) : null;
             
             if (!label) {
                 alert('Please enter a label for the marker');
@@ -1370,7 +1524,7 @@ $forkCount = $panoramaController->getForkCount($id);
                 return;
             }
             
-            const success = await updateMarker(id, label, description, color, audioFile, removeAudio);
+            const success = await updateMarker(id, label, description, color, audioFile, removeAudio, targetPanoramaId);
             if (success) {
                 bootstrap.Modal.getInstance(document.getElementById('editMarkerModal')).hide();
             }
