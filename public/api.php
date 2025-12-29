@@ -60,7 +60,12 @@ try {
             $type = trim($inputData['type'] ?? 'text');
             $color = trim($inputData['color'] ?? 'blue');
             
-            $result = $markerController->create($panoramaId, $yaw, $pitch, $label, $description, $type, $color);
+            // Get audio file if uploaded (supports multipart/form-data)
+            $audioFile = isset($_FILES['audio_file']) && $_FILES['audio_file']['error'] !== UPLOAD_ERR_NO_FILE 
+                         ? $_FILES['audio_file'] 
+                         : null;
+            
+            $result = $markerController->create($panoramaId, $yaw, $pitch, $label, $description, $type, $color, $audioFile);
             
             if (!$result['success']) {
                 http_response_code(400);
@@ -123,8 +128,14 @@ try {
             $description = trim($inputData['description'] ?? '');
             $type = trim($inputData['type'] ?? 'text');
             $color = trim($inputData['color'] ?? 'blue');
+            $removeAudio = filter_var($inputData['remove_audio'] ?? false, FILTER_VALIDATE_BOOLEAN);
             
-            $result = $markerController->update($markerId, $label, $description, $type, $color);
+            // Get audio file if uploaded (supports multipart/form-data)
+            $audioFile = isset($_FILES['audio_file']) && $_FILES['audio_file']['error'] !== UPLOAD_ERR_NO_FILE 
+                         ? $_FILES['audio_file'] 
+                         : null;
+            
+            $result = $markerController->update($markerId, $label, $description, $type, $color, $audioFile, $removeAudio);
             
             if (!$result['success']) {
                 http_response_code(400);
