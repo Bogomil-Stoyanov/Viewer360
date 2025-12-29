@@ -22,6 +22,12 @@ class Config
                 'allowed_extensions' => ['jpg', 'jpeg', 'png'],
                 'upload_dir' => __DIR__ . '/../public/uploads/'
             ],
+            'audio' => [
+                'max_size' => 15 * 1024 * 1024, // 15MB in bytes
+                'allowed_types' => ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/x-wav'],
+                'allowed_extensions' => ['mp3', 'wav', 'ogg'],
+                'upload_dir' => __DIR__ . '/../public/uploads/audio/'
+            ],
             'app' => [
                 'name' => 'Viewer360',
                 'base_url' => '/'

@@ -109,6 +109,16 @@ try {
         echo "✓ is_banned column already exists\n";
     }
     
+    // Check if audio_path column exists in markers table
+    $stmt = $db->query("SHOW COLUMNS FROM markers LIKE 'audio_path'");
+    if ($stmt->rowCount() == 0) {
+        echo "Adding audio_path column to markers table...\n";
+        $db->exec("ALTER TABLE markers ADD COLUMN audio_path VARCHAR(255) DEFAULT NULL AFTER description");
+        echo "✓ Added audio_path column\n";
+    } else {
+        echo "✓ audio_path column already exists\n";
+    }
+    
     echo "\n✅ Migration completed successfully!\n";
     
 } catch (PDOException $e) {

@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Config;
 use App\Database;
 
 class MarkerController
@@ -22,7 +23,7 @@ class MarkerController
         'white' => '#ffffff'
     ];
 
-    public function create(int $panoramaId, float $yaw, float $pitch, string $label, string $description = '', string $type = 'text', string $color = 'blue'): array
+    public function create(int $panoramaId, float $yaw, float $pitch, string $label, string $description = '', string $type = 'text', string $color = 'blue', ?array $audioFile = null): array
     {
         if (!AuthController::isLoggedIn()) {
             return ['success' => false, 'error' => 'You must be logged in to create markers.'];
@@ -57,11 +58,21 @@ class MarkerController
             return ['success' => false, 'error' => 'You can only add markers to your own panoramas.'];
         }
 
+        // Handle audio file upload if provided
+        $audioPath = null;
+        if ($audioFile !== null && isset($audioFile['tmp_name']) && !empty($audioFile['tmp_name'])) {
+            $audioResult = $this->handleAudioUpload($audioFile);
+            if (!$audioResult['success']) {
+                return $audioResult;
+            }
+            $audioPath = $audioResult['path'];
+        }
+
         try {
             Database::query(
-                "INSERT INTO markers (panorama_id, user_id, yaw, pitch, type, color, label, description) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                [$panoramaId, $userId, $yaw, $pitch, $type, $color, $label, $description]
+                "INSERT INTO markers (panorama_id, user_id, yaw, pitch, type, color, label, description, audio_path) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [$panoramaId, $userId, $yaw, $pitch, $type, $color, $label, $description, $audioPath]
             );
 
             $markerId = Database::lastInsertId();
@@ -77,7 +88,8 @@ class MarkerController
                     'type' => $type,
                     'color' => $color,
                     'label' => $label,
-                    'description' => $description
+                    'description' => $description,
+                    'audio_path' => $audioPath
                 ]
             ];
         } catch (\PDOException $e) {
@@ -134,7 +146,7 @@ class MarkerController
     /**
      * Update a marker
      */
-    public function update(int $id, string $label, string $description = '', string $type = 'text', string $color = 'blue'): array
+    public function update(int $id, string $label, string $description = '', string $type = 'text', string $color = 'blue', ?array $audioFile = null, bool $removeAudio = false): array
     {
         if (!AuthController::isLoggedIn()) {
             return ['success' => false, 'error' => 'You must be logged in to update markers.'];
@@ -162,10 +174,32 @@ class MarkerController
             $color = 'blue';
         }
 
+        // Handle audio: remove, replace, or keep existing
+        $audioPath = $marker['audio_path'] ?? null;
+        
+        if ($removeAudio) {
+            // Delete existing audio file if present
+            if ($audioPath) {
+                $this->deleteAudioFile($audioPath);
+            }
+            $audioPath = null;
+        } elseif ($audioFile !== null && isset($audioFile['tmp_name']) && !empty($audioFile['tmp_name'])) {
+            // Delete old audio file if replacing
+            if ($marker['audio_path']) {
+                $this->deleteAudioFile($marker['audio_path']);
+            }
+            // Upload new audio
+            $audioResult = $this->handleAudioUpload($audioFile);
+            if (!$audioResult['success']) {
+                return $audioResult;
+            }
+            $audioPath = $audioResult['path'];
+        }
+
         try {
             Database::query(
-                "UPDATE markers SET label = ?, description = ?, type = ?, color = ? WHERE id = ?",
-                [$label, $description, $type, $color, $id]
+                "UPDATE markers SET label = ?, description = ?, type = ?, color = ?, audio_path = ? WHERE id = ?",
+                [$label, $description, $type, $color, $audioPath, $id]
             );
 
             return [
@@ -174,7 +208,8 @@ class MarkerController
                     'label' => $label,
                     'description' => $description,
                     'type' => $type,
-                    'color' => $color
+                    'color' => $color,
+                    'audio_path' => $audioPath
                 ])
             ];
         } catch (\PDOException $e) {
@@ -205,12 +240,99 @@ class MarkerController
         }
 
         try {
+            // Delete associated audio file if present
+            if (!empty($marker['audio_path'])) {
+                $this->deleteAudioFile($marker['audio_path']);
+            }
+            
             Database::query("DELETE FROM markers WHERE id = ?", [$id]);
             return ['success' => true, 'message' => 'Marker deleted successfully.'];
         } catch (\PDOException $e) {
             error_log("Marker delete error: " . $e->getMessage());
             return ['success' => false, 'error' => 'Failed to delete marker.'];
         }
+    }
+
+    /**
+     * Handle audio file upload
+     */
+    private function handleAudioUpload(array $file): array
+    {
+        // Check for upload errors
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            return ['success' => false, 'error' => $this->getUploadErrorMessage($file['error'])];
+        }
+
+        // Validate file size (15MB max)
+        $maxSize = Config::get('audio.max_size');
+        if ($file['size'] > $maxSize) {
+            return ['success' => false, 'error' => 'Audio file size exceeds the maximum limit of 15MB.'];
+        }
+
+        // Validate MIME type
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($file['tmp_name']);
+        $allowedTypes = Config::get('audio.allowed_types');
+
+        if (!in_array($mimeType, $allowedTypes)) {
+            return ['success' => false, 'error' => 'Only MP3, WAV, and OGG audio files are allowed.'];
+        }
+
+        // Validate extension
+        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+        $allowedExtensions = Config::get('audio.allowed_extensions');
+
+        if (!in_array($extension, $allowedExtensions)) {
+            return ['success' => false, 'error' => 'Invalid audio file extension.'];
+        }
+
+        // Generate unique filename
+        $newFilename = md5(time() . $file['name'] . uniqid()) . '.' . $extension;
+        $uploadDir = Config::get('audio.upload_dir');
+        $destination = $uploadDir . $newFilename;
+
+        // Ensure upload directory exists
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
+        // Move uploaded file
+        if (!move_uploaded_file($file['tmp_name'], $destination)) {
+            return ['success' => false, 'error' => 'Failed to save the audio file.'];
+        }
+
+        return [
+            'success' => true,
+            'path' => 'uploads/audio/' . $newFilename
+        ];
+    }
+
+    /**
+     * Delete an audio file from disk
+     */
+    private function deleteAudioFile(string $audioPath): void
+    {
+        $fullPath = __DIR__ . '/../../public/' . $audioPath;
+        if (file_exists($fullPath)) {
+            unlink($fullPath);
+        }
+    }
+
+    /**
+     * Get human-readable upload error message
+     */
+    private function getUploadErrorMessage(int $errorCode): string
+    {
+        return match ($errorCode) {
+            UPLOAD_ERR_INI_SIZE => 'The uploaded file exceeds the server limit.',
+            UPLOAD_ERR_FORM_SIZE => 'The uploaded file exceeds the form limit.',
+            UPLOAD_ERR_PARTIAL => 'The file was only partially uploaded.',
+            UPLOAD_ERR_NO_FILE => 'No file was uploaded.',
+            UPLOAD_ERR_NO_TMP_DIR => 'Missing temporary folder.',
+            UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
+            UPLOAD_ERR_EXTENSION => 'A PHP extension stopped the file upload.',
+            default => 'Unknown upload error.',
+        };
     }
 
     /**
@@ -225,14 +347,14 @@ class MarkerController
         try {
             // Keep original user_id to preserve author attribution
             $markers = Database::query(
-                "SELECT user_id, yaw, pitch, type, color, label, description FROM markers WHERE panorama_id = ?",
+                "SELECT user_id, yaw, pitch, type, color, label, description, audio_path FROM markers WHERE panorama_id = ?",
                 [$sourcePanoramaId]
             )->fetchAll();
 
             foreach ($markers as $marker) {
                 Database::query(
-                    "INSERT INTO markers (panorama_id, user_id, yaw, pitch, type, color, label, description) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO markers (panorama_id, user_id, yaw, pitch, type, color, label, description, audio_path) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     [
                         $targetPanoramaId,
                         $marker['user_id'],  // Keep original author!
@@ -241,7 +363,8 @@ class MarkerController
                         $marker['type'],
                         $marker['color'] ?? 'blue',
                         $marker['label'],
-                        $marker['description']
+                        $marker['description'],
+                        $marker['audio_path']  // Keep same audio path reference
                     ]
                 );
             }

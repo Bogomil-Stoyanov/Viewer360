@@ -1,6 +1,9 @@
 # Uploads directory (keep folder structure but ignore contents)
 public/uploads/*
 !public/uploads/.gitkeep
+!public/uploads/audio/
+public/uploads/audio/*
+!public/uploads/audio/.gitkeep
 
 # Environment files
 .env

@@ -220,6 +220,9 @@ $forkCount = $panoramaController->getForkCount($id);
             cursor: pointer;
             box-shadow: 0 2px 8px rgba(0,0,0,0.4);
             transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .custom-marker:hover {
@@ -230,6 +233,29 @@ $forkCount = $panoramaController->getForkCount($id);
         .custom-marker.highlighted {
             background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
             animation: pulse 1s ease-in-out 3;
+        }
+        
+        /* Audio marker styles */
+        .custom-marker.has-audio {
+            width: 28px;
+            height: 28px;
+            border-width: 3px;
+        }
+        
+        .custom-marker.has-audio .audio-icon {
+            color: white;
+            font-size: 12px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
+        
+        .custom-marker.has-audio.playing {
+            animation: audio-pulse 0.5s ease-in-out infinite alternate;
+            box-shadow: 0 0 15px rgba(13, 110, 253, 0.6);
+        }
+        
+        @keyframes audio-pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.15); }
         }
         
         @keyframes pulse {
@@ -644,6 +670,14 @@ $forkCount = $panoramaController->getForkCount($id);
                                 <div class="color-option" data-color="white" title="White"></div>
                             </div>
                         </div>
+                        <div class="mb-3">
+                            <label for="markerAudio" class="form-label">
+                                <i class="bi bi-volume-up"></i> Attach Audio (Optional)
+                            </label>
+                            <input type="file" class="form-control" id="markerAudio" name="audio_file" 
+                                   accept=".mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg">
+                            <div class="form-text">MP3, WAV, or OGG. Max 15MB.</div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -690,6 +724,27 @@ $forkCount = $panoramaController->getForkCount($id);
                                 <div class="color-option" data-color="white" title="White"></div>
                             </div>
                         </div>
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="bi bi-volume-up"></i> Audio Attachment
+                            </label>
+                            <div id="editCurrentAudio" class="mb-2 d-none">
+                                <div class="d-flex align-items-center gap-2 p-2 bg-light rounded">
+                                    <i class="bi bi-music-note-beamed text-primary"></i>
+                                    <span class="flex-grow-1 text-truncate" id="editAudioFilename">audio.mp3</span>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="previewAudioBtn" title="Preview">
+                                        <i class="bi bi-play-fill"></i>
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" id="removeAudioBtn" title="Remove audio">
+                                        <i class="bi bi-x-lg"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <input type="hidden" id="editRemoveAudio" name="remove_audio" value="0">
+                            <input type="file" class="form-control" id="editMarkerAudio" name="audio_file" 
+                                   accept=".mp3,.wav,.ogg,audio/mpeg,audio/wav,audio/ogg">
+                            <div class="form-text">MP3, WAV, or OGG. Max 15MB. Upload to replace existing.</div>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer justify-content-between">
@@ -734,6 +789,8 @@ $forkCount = $panoramaController->getForkCount($id);
         // State
         let editMode = false;
         let markersData = [];
+        let currentAudio = null;  // Currently playing audio
+        let currentPlayingMarkerId = null;  // ID of marker whose audio is playing
         
         // Color mapping
         const colorMap = {
@@ -787,10 +844,14 @@ $forkCount = $panoramaController->getForkCount($id);
         function createMarkerConfig(marker, isHighlighted = false) {
             const shareUrl = `${window.location.origin}/view.php?id=${panoramaId}&marker=${marker.id}`;
             const markerColor = marker.color || 'blue';
+            const hasAudio = marker.audio_path && marker.audio_path.length > 0;
+            const audioIndicator = hasAudio ? '<i class="bi bi-volume-up"></i> ' : '';
+            
             const tooltipContent = `
                 <div class="marker-tooltip">
-                    <h6>${escapeHtml(marker.label)}</h6>
+                    <h6>${audioIndicator}${escapeHtml(marker.label)}</h6>
                     ${marker.description ? `<p>${escapeHtml(marker.description)}</p>` : ''}
+                    ${hasAudio ? '<p class="text-info small mb-1"><i class="bi bi-music-note"></i> Click marker to play/pause audio</p>' : ''}
                     <div class="marker-meta">
                         <i class="bi bi-person"></i> ${escapeHtml(marker.username || 'Unknown')}
                         <button class="btn btn-sm btn-outline-light ms-2 copy-link-btn" 
@@ -804,13 +865,17 @@ $forkCount = $panoramaController->getForkCount($id);
             
             const markerGradient = getMarkerGradient(markerColor, isHighlighted);
             const borderColor = markerColor === 'white' ? '#ccc' : 'white';
+            const audioClass = hasAudio ? 'has-audio' : '';
+            const audioIcon = hasAudio ? '<i class="bi bi-volume-up audio-icon"></i>' : '';
             
             return {
                 id: `marker-${marker.id}`,
                 position: { yaw: parseFloat(marker.yaw), pitch: parseFloat(marker.pitch) },
-                html: `<div class="custom-marker ${isHighlighted ? 'highlighted' : ''}" 
+                html: `<div class="custom-marker ${audioClass} ${isHighlighted ? 'highlighted' : ''}" 
                             data-marker-id="${marker.id}" 
-                            style="background: ${markerGradient}; border-color: ${borderColor};"></div>`,
+                            data-has-audio="${hasAudio}"
+                            data-audio-path="${hasAudio ? marker.audio_path : ''}"
+                            style="background: ${markerGradient}; border-color: ${borderColor};">${audioIcon}</div>`,
                 anchor: 'center center',
                 tooltip: {
                     content: tooltipContent,
@@ -888,9 +953,12 @@ $forkCount = $panoramaController->getForkCount($id);
             listContainer.innerHTML = markersData.map(marker => {
                 const markerColor = marker.color || 'blue';
                 const colorHex = colorMap[markerColor] || colorMap['blue'];
+                const hasAudio = marker.audio_path && marker.audio_path.length > 0;
+                const audioIcon = hasAudio ? '<i class="bi bi-volume-up text-info me-1" title="Has audio"></i>' : '';
                 return `
                     <div class="marker-list-item" data-marker-id="${marker.id}" onclick="navigateToMarker(${marker.id})">
                         <div class="marker-color-dot" style="background: ${colorHex};"></div>
+                        ${audioIcon}
                         <span class="label">${escapeHtml(marker.label)}</span>
                         <i class="bi bi-chevron-right arrow"></i>
                     </div>
@@ -909,20 +977,25 @@ $forkCount = $panoramaController->getForkCount($id);
         };
         
         // Create a new marker
-        async function createMarker(yaw, pitch, label, description, color) {
+        async function createMarker(yaw, pitch, label, description, color, audioFile = null) {
             try {
+                // Use FormData for multipart/form-data (required for file uploads)
+                const formData = new FormData();
+                formData.append('panorama_id', panoramaId);
+                formData.append('yaw', yaw);
+                formData.append('pitch', pitch);
+                formData.append('label', label);
+                formData.append('description', description);
+                formData.append('color', color);
+                formData.append('type', 'text');
+                
+                if (audioFile) {
+                    formData.append('audio_file', audioFile);
+                }
+                
                 const response = await fetch('/api.php?action=marker/create', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        panorama_id: panoramaId,
-                        yaw: yaw,
-                        pitch: pitch,
-                        label: label,
-                        description: description,
-                        color: color,
-                        type: 'text'
-                    })
+                    body: formData  // No Content-Type header - browser sets it with boundary
                 });
                 
                 const data = await response.json();
@@ -932,6 +1005,7 @@ $forkCount = $panoramaController->getForkCount($id);
                     data.marker.username = '<?= htmlspecialchars(addslashes(AuthController::getCurrentUsername() ?? '')) ?>';
                     markersData.push(data.marker);
                     markersPlugin.addMarker(createMarkerConfig(data.marker));
+                    updateMarkerSidebar();
                     return true;
                 } else {
                     alert(data.error || 'Failed to create marker');
@@ -945,18 +1019,24 @@ $forkCount = $panoramaController->getForkCount($id);
         }
         
         // Update a marker
-        async function updateMarker(id, label, description, color) {
+        async function updateMarker(id, label, description, color, audioFile = null, removeAudio = false) {
             try {
+                // Use FormData for multipart/form-data (required for file uploads)
+                const formData = new FormData();
+                formData.append('id', id);
+                formData.append('label', label);
+                formData.append('description', description);
+                formData.append('color', color);
+                formData.append('type', 'text');
+                formData.append('remove_audio', removeAudio ? '1' : '0');
+                
+                if (audioFile) {
+                    formData.append('audio_file', audioFile);
+                }
+                
                 const response = await fetch('/api.php?action=marker/update', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id: id,
-                        label: label,
-                        description: description,
-                        color: color,
-                        type: 'text'
-                    })
+                    body: formData
                 });
                 
                 const data = await response.json();
@@ -968,9 +1048,11 @@ $forkCount = $panoramaController->getForkCount($id);
                         markersData[markerIndex].label = label;
                         markersData[markerIndex].description = description;
                         markersData[markerIndex].color = color;
+                        markersData[markerIndex].audio_path = data.marker.audio_path;
                         
                         // Update the marker in the viewer
                         markersPlugin.updateMarker(createMarkerConfig(markersData[markerIndex]));
+                        updateMarkerSidebar();
                     }
                     return true;
                 } else {
@@ -1063,6 +1145,68 @@ $forkCount = $panoramaController->getForkCount($id);
             return div.innerHTML;
         }
         
+        // ========== AUDIO PLAYBACK FUNCTIONS ==========
+        
+        // Stop currently playing audio
+        function stopCurrentAudio() {
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+                currentAudio = null;
+                
+                // Remove playing class from marker
+                if (currentPlayingMarkerId) {
+                    const markerEl = document.querySelector(`[data-marker-id="${currentPlayingMarkerId}"]`);
+                    if (markerEl) {
+                        markerEl.classList.remove('playing');
+                    }
+                }
+                currentPlayingMarkerId = null;
+            }
+        }
+        
+        // Play or toggle audio for a marker
+        function toggleMarkerAudio(markerId, audioPath) {
+            // If same marker is playing, stop it
+            if (currentPlayingMarkerId === markerId && currentAudio) {
+                stopCurrentAudio();
+                return;
+            }
+            
+            // Stop any currently playing audio first
+            stopCurrentAudio();
+            
+            // Create and play new audio
+            currentAudio = new Audio('/' + audioPath);
+            currentPlayingMarkerId = markerId;
+            
+            // Add playing class to marker
+            const markerEl = document.querySelector(`[data-marker-id="${markerId}"]`);
+            if (markerEl) {
+                markerEl.classList.add('playing');
+            }
+            
+            // Handle audio end
+            currentAudio.addEventListener('ended', () => {
+                if (markerEl) {
+                    markerEl.classList.remove('playing');
+                }
+                currentPlayingMarkerId = null;
+                currentAudio = null;
+            });
+            
+            // Handle audio error
+            currentAudio.addEventListener('error', () => {
+                console.error('Failed to load audio:', audioPath);
+                stopCurrentAudio();
+            });
+            
+            currentAudio.play().catch(err => {
+                console.error('Failed to play audio:', err);
+                stopCurrentAudio();
+            });
+        }
+        
         // ========== EVENT HANDLERS ==========
         
         // Hide loading overlay and initialize when ready
@@ -1137,21 +1281,37 @@ $forkCount = $panoramaController->getForkCount($id);
             const label = document.getElementById('markerLabel').value.trim();
             const description = document.getElementById('markerDescription').value.trim();
             const color = document.getElementById('markerColor').value;
+            const audioInput = document.getElementById('markerAudio');
+            const audioFile = audioInput.files.length > 0 ? audioInput.files[0] : null;
             
             if (!label) {
                 alert('Please enter a label for the marker');
                 return;
             }
             
-            const success = await createMarker(yaw, pitch, label, description, color);
+            // Validate audio file size (15MB max)
+            if (audioFile && audioFile.size > 15 * 1024 * 1024) {
+                alert('Audio file must be less than 15MB');
+                return;
+            }
+            
+            const success = await createMarker(yaw, pitch, label, description, color, audioFile);
             if (success) {
                 bootstrap.Modal.getInstance(document.getElementById('addMarkerModal')).hide();
+                // Reset audio input
+                audioInput.value = '';
             }
         });
         
-        // Click on marker to edit (when in edit mode and owner)
+        // Click on marker to edit (when in edit mode and owner) OR play audio
         markersPlugin.addEventListener('select-marker', (e) => {
             const markerData = e.marker.config.data;
+            
+            // If marker has audio and NOT in edit mode, toggle audio playback
+            if (markerData && markerData.audio_path && !editMode) {
+                toggleMarkerAudio(markerData.id, markerData.audio_path);
+                return;
+            }
             
             if (editMode && isOwner && markerData) {
                 // Check if current user owns this marker
@@ -1166,6 +1326,18 @@ $forkCount = $panoramaController->getForkCount($id);
                 document.getElementById('editMarkerLabel').value = markerData.label || '';
                 document.getElementById('editMarkerDescription').value = markerData.description || '';
                 document.getElementById('editMarkerColor').value = markerData.color || 'blue';
+                document.getElementById('editRemoveAudio').value = '0';
+                document.getElementById('editMarkerAudio').value = '';
+                
+                // Show/hide current audio info
+                const currentAudioDiv = document.getElementById('editCurrentAudio');
+                if (markerData.audio_path) {
+                    currentAudioDiv.classList.remove('d-none');
+                    document.getElementById('editAudioFilename').textContent = markerData.audio_path.split('/').pop();
+                    document.getElementById('editAudioFilename').dataset.path = markerData.audio_path;
+                } else {
+                    currentAudioDiv.classList.add('d-none');
+                }
                 
                 // Update color picker selection
                 document.querySelectorAll('#editColorPicker .color-option').forEach(opt => {
@@ -1183,13 +1355,22 @@ $forkCount = $panoramaController->getForkCount($id);
             const label = document.getElementById('editMarkerLabel').value.trim();
             const description = document.getElementById('editMarkerDescription').value.trim();
             const color = document.getElementById('editMarkerColor').value;
+            const removeAudio = document.getElementById('editRemoveAudio').value === '1';
+            const audioInput = document.getElementById('editMarkerAudio');
+            const audioFile = audioInput.files.length > 0 ? audioInput.files[0] : null;
             
             if (!label) {
                 alert('Please enter a label for the marker');
                 return;
             }
             
-            const success = await updateMarker(id, label, description, color);
+            // Validate audio file size (15MB max)
+            if (audioFile && audioFile.size > 15 * 1024 * 1024) {
+                alert('Audio file must be less than 15MB');
+                return;
+            }
+            
+            const success = await updateMarker(id, label, description, color, audioFile, removeAudio);
             if (success) {
                 bootstrap.Modal.getInstance(document.getElementById('editMarkerModal')).hide();
             }
@@ -1344,6 +1525,58 @@ $forkCount = $panoramaController->getForkCount($id);
         if (document.getElementById('votingPanel')) {
             loadVoteStatus();
         }
+        
+        // ========== EDIT MODAL AUDIO HANDLERS ==========
+        
+        // Preview audio button
+        const previewAudioBtn = document.getElementById('previewAudioBtn');
+        if (previewAudioBtn) {
+            let previewAudio = null;
+            previewAudioBtn.addEventListener('click', () => {
+                const audioPath = document.getElementById('editAudioFilename').dataset.path;
+                if (!audioPath) return;
+                
+                if (previewAudio) {
+                    previewAudio.pause();
+                    previewAudio = null;
+                    previewAudioBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
+                } else {
+                    previewAudio = new Audio('/' + audioPath);
+                    previewAudioBtn.innerHTML = '<i class="bi bi-pause-fill"></i>';
+                    previewAudio.play();
+                    previewAudio.addEventListener('ended', () => {
+                        previewAudioBtn.innerHTML = '<i class="bi bi-play-fill"></i>';
+                        previewAudio = null;
+                    });
+                }
+            });
+        }
+        
+        // Remove audio button
+        const removeAudioBtn = document.getElementById('removeAudioBtn');
+        if (removeAudioBtn) {
+            removeAudioBtn.addEventListener('click', () => {
+                if (confirm('Remove audio from this marker?')) {
+                    document.getElementById('editRemoveAudio').value = '1';
+                    document.getElementById('editCurrentAudio').classList.add('d-none');
+                }
+            });
+        }
+        
+        // Audio file input validation
+        document.getElementById('markerAudio')?.addEventListener('change', function() {
+            if (this.files.length > 0 && this.files[0].size > 15 * 1024 * 1024) {
+                alert('Audio file must be less than 15MB');
+                this.value = '';
+            }
+        });
+        
+        document.getElementById('editMarkerAudio')?.addEventListener('change', function() {
+            if (this.files.length > 0 && this.files[0].size > 15 * 1024 * 1024) {
+                alert('Audio file must be less than 15MB');
+                this.value = '';
+            }
+        });
     </script>
 </body>
 </html>
