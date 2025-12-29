@@ -59,6 +59,13 @@
                 </ul>
                 <ul class="navbar-nav">
                     <?php if (\App\Controllers\AuthController::isLoggedIn()): ?>
+                        <?php if (\App\Controllers\AuthController::isAdmin()): ?>
+                        <li class="nav-item">
+                            <a class="nav-link <?= ($currentPage ?? '') === 'admin' ? 'active' : '' ?>" href="/admin/dashboard.php">
+                                <i class="bi bi-shield-lock"></i> Admin
+                            </a>
+                        </li>
+                        <?php endif; ?>
                         <li class="nav-item">
                             <a class="nav-link <?= ($currentPage ?? '') === 'dashboard' ? 'active' : '' ?>" href="/dashboard.php">
                                 <i class="bi bi-speedometer2"></i> Dashboard
@@ -71,6 +78,14 @@
                                 <?= htmlspecialchars(\App\Controllers\AuthController::getCurrentUsername()) ?>
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <?php if (\App\Controllers\AuthController::isAdmin()): ?>
+                                <li>
+                                    <a class="dropdown-item" href="/admin/dashboard.php">
+                                        <i class="bi bi-shield-lock"></i> Admin Panel
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <?php endif; ?>
                                 <li>
                                     <a class="dropdown-item" href="/logout.php">
                                         <i class="bi bi-box-arrow-right"></i> Logout

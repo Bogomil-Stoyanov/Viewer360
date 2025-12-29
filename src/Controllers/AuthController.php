@@ -67,7 +67,7 @@ class AuthController
         }
 
         $stmt = Database::query(
-            "SELECT id, username, email, password_hash FROM users WHERE email = ?",
+            "SELECT id, username, email, password_hash, role, is_banned FROM users WHERE email = ?",
             [$email]
         );
 
@@ -77,10 +77,16 @@ class AuthController
             return ['success' => false, 'errors' => ['Invalid email or password.']];
         }
 
+        // Check if user is banned
+        if ($user['is_banned']) {
+            return ['success' => false, 'errors' => ['Your account has been suspended. Please contact support.']];
+        }
+
         // Set session variables
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['email'] = $user['email'];
+        $_SESSION['role'] = $user['role'] ?? 'user';
         $_SESSION['logged_in'] = true;
 
         return ['success' => true, 'message' => 'Login successful!'];
@@ -122,5 +128,32 @@ class AuthController
             header('Location: /login.php');
             exit;
         }
+    }
+
+    public static function isAdmin(): bool
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        return self::isLoggedIn() && isset($_SESSION['role']) && $_SESSION['role'] === 'admin';
+    }
+
+    public static function requireAdmin(): void
+    {
+        if (!self::isAdmin()) {
+            header('HTTP/1.0 403 Forbidden');
+            echo '<!DOCTYPE html><html><head><title>403 Forbidden</title></head><body>';
+            echo '<h1>403 Forbidden</h1><p>You do not have permission to access this page.</p>';
+            echo '<p><a href="/">Go to Home</a></p></body></html>';
+            exit;
+        }
+    }
+
+    public static function getCurrentRole(): ?string
+    {
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        return $_SESSION['role'] ?? null;
     }
 }
