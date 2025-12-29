@@ -89,6 +89,26 @@ try {
         echo "✓ votes table already exists\n";
     }
     
+    // Check if role column exists in users table
+    $stmt = $db->query("SHOW COLUMNS FROM users LIKE 'role'");
+    if ($stmt->rowCount() == 0) {
+        echo "Adding role column to users table...\n";
+        $db->exec("ALTER TABLE users ADD COLUMN role ENUM('user', 'admin') DEFAULT 'user' AFTER password_hash");
+        echo "✓ Added role column\n";
+    } else {
+        echo "✓ role column already exists\n";
+    }
+    
+    // Check if is_banned column exists in users table
+    $stmt = $db->query("SHOW COLUMNS FROM users LIKE 'is_banned'");
+    if ($stmt->rowCount() == 0) {
+        echo "Adding is_banned column to users table...\n";
+        $db->exec("ALTER TABLE users ADD COLUMN is_banned BOOLEAN DEFAULT FALSE AFTER role");
+        echo "✓ Added is_banned column\n";
+    } else {
+        echo "✓ is_banned column already exists\n";
+    }
+    
     echo "\n✅ Migration completed successfully!\n";
     
 } catch (PDOException $e) {

@@ -136,6 +136,11 @@ class PanoramaController
             return true;
         }
 
+        // Admins can view all panoramas
+        if (AuthController::isAdmin()) {
+            return true;
+        }
+
         // Private panoramas can only be viewed by the owner
         $currentUserId = AuthController::getCurrentUserId();
         return $currentUserId !== null && $currentUserId === (int)$panorama['user_id'];
