@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: viewer360_web
+    ports:
+      - "8080:80"
+    volumes:
+      - ./public:/var/www/html/public
+      - ./src:/var/www/html/src
+      - ./views:/var/www/html/views
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_NAME=viewer360
+      - DB_USER=viewer360_user
+      - DB_PASS=viewer360_pass
+    networks:
+      - viewer360_network
+
+  db:
+    image: mysql:8.0
+    container_name: viewer360_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: viewer360
+      MYSQL_USER: viewer360_user
+      MYSQL_PASSWORD: viewer360_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - viewer360_network
+
+  phpmyadmin:
+    image: arm64v8/phpmyadmin
+    container_name: viewer360_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      PMA_USER: viewer360_user
+      PMA_PASSWORD: viewer360_pass
+    depends_on:
+      - db
+    networks:
+      - viewer360_network
+
+volumes:
+  db_data:
+
+networks:
+  viewer360_network:
+    driver: bridge

@@ -1,0 +1,24 @@
+# Uploads directory (keep folder structure but ignore contents)
+public/uploads/*
+!public/uploads/.gitkeep
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+db_data/
+
+# Logs
+*.log
