@@ -33,6 +33,10 @@
             border-color: #86b7fe;
             box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
         }
+        
+        .nav-link {
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -46,7 +50,14 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link <?= ($currentPage ?? '') === 'explore' ? 'active' : '' ?>" href="/explore.php">
+                            <i class="bi bi-compass"></i><span class="ms-1">Explore</span>
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
                     <?php if (\App\Controllers\AuthController::isLoggedIn()): ?>
                         <li class="nav-item">
                             <a class="nav-link <?= ($currentPage ?? '') === 'dashboard' ? 'active' : '' ?>" href="/dashboard.php">
