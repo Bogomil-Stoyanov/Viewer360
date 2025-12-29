@@ -46,7 +46,7 @@ include __DIR__ . '/../views/header.php';
                             <div class="card-body text-center">
                                 <i class="bi bi-upload display-4 text-primary mb-3"></i>
                                 <h5 class="card-title">Easy Upload</h5>
-                                <p class="card-text text-muted">Upload your panoramic images up to 20MB in JPG or PNG format.</p>
+                                <p class="card-text text-muted">Upload your panoramic images up to 50MB in JPG or PNG format.</p>
                             </div>
                         </div>
                     </div>
