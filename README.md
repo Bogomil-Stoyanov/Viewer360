@@ -5,9 +5,13 @@ A web-based platform for uploading, viewing, and sharing panoramic (equirectangu
 ## Features
 
 - **User Authentication**: Secure registration and login with password hashing
-- **Image Upload**: Support for JPG/PNG panoramic images up to 20MB
+- **Image Upload**: Support for JPG/PNG panoramic images up to 50MB
 - **360° Viewer**: Interactive panoramic viewer using Photo Sphere Viewer
+- **Interactive Markers**: Add, edit, and color-code annotation markers on panoramas
+- **Deep Linking**: Share direct links to specific markers within panoramas
+- **Fork/Remix**: Save public panoramas to your collection with preserved marker attribution
 - **Privacy Controls**: Make panoramas public or private
+- **Panorama Editing**: Update title, description, and visibility settings
 - **Dockerized**: Complete Docker setup with PHP, MySQL, and phpMyAdmin
 
 ## Tech Stack
@@ -44,6 +48,14 @@ A web-based platform for uploading, viewing, and sharing panoramic (equirectangu
    - **Application**: http://localhost:8080
    - **phpMyAdmin**: http://localhost:8081
 
+4. Run database migrations (if updating from an older version):
+
+   ```bash
+   docker exec -it viewer360_web php /var/www/html/public/migrate.php
+   ```
+
+   This will safely add any new tables or columns to your existing database.
+
 ### Default Credentials
 
 **phpMyAdmin:**
@@ -65,13 +77,16 @@ Viewer360/
 │   ├── register.php       # Registration page
 │   ├── dashboard.php      # User dashboard
 │   ├── view.php           # 360° viewer
+│   ├── api.php            # REST API endpoints
+│   ├── migrate.php        # Database migration script
 │   └── logout.php         # Logout handler
 ├── src/                    # PHP classes
 │   ├── Config.php         # Configuration
 │   ├── Database.php       # PDO database wrapper
 │   └── Controllers/
 │       ├── AuthController.php      # Authentication
-│       └── PanoramaController.php  # Panorama management
+│       ├── PanoramaController.php  # Panorama management
+│       └── MarkerController.php    # Marker CRUD operations
 ├── views/                  # HTML templates
 │   ├── header.php         # Common header
 │   └── footer.php         # Common footer
@@ -94,15 +109,32 @@ Viewer360/
 
 ### panoramas
 
-| Column      | Type         | Description           |
-| ----------- | ------------ | --------------------- |
-| id          | INT          | Primary key           |
-| user_id     | INT          | Foreign key to users  |
-| file_path   | VARCHAR(255) | Path to uploaded file |
-| title       | VARCHAR(200) | Panorama title        |
-| description | TEXT         | Optional description  |
-| is_public   | BOOLEAN      | Privacy setting       |
-| created_at  | TIMESTAMP    | Upload date           |
+| Column               | Type         | Description                |
+| -------------------- | ------------ | -------------------------- |
+| id                   | INT          | Primary key                |
+| user_id              | INT          | Foreign key to users       |
+| file_path            | VARCHAR(255) | Path to uploaded file      |
+| title                | VARCHAR(200) | Panorama title             |
+| description          | TEXT         | Optional description       |
+| is_public            | BOOLEAN      | Privacy setting            |
+| original_panorama_id | INT          | Source panorama if forked  |
+| created_at           | TIMESTAMP    | Upload date                |
+
+### markers
+
+| Column      | Type         | Description              |
+| ----------- | ------------ | ------------------------ |
+| id          | INT          | Primary key              |
+| panorama_id | INT          | Foreign key to panoramas |
+| user_id     | INT          | Foreign key to users     |
+| yaw         | DOUBLE       | Horizontal position      |
+| pitch       | DOUBLE       | Vertical position        |
+| type        | VARCHAR(50)  | Marker type (text)       |
+| color       | VARCHAR(20)  | Marker color             |
+| label       | VARCHAR(200) | Marker title             |
+| description | TEXT         | Optional description     |
+| created_at  | TIMESTAMP    | Creation date            |
+| updated_at  | TIMESTAMP    | Last update date         |
 
 ## Security Features
 
@@ -125,6 +157,16 @@ Environment variables (set in `docker-compose.yml`):
 | DB_PASS  | viewer360_pass | Database password |
 
 ## Development
+
+### Running Database Migrations
+
+When updating the application or pulling new changes that include database schema updates, run the migration script:
+
+```bash
+docker exec -it viewer360_web php /var/www/html/public/migrate.php
+```
+
+The migration script is idempotent and safe to run multiple times - it checks for existing tables/columns before making changes.
 
 ### Stopping containers
 

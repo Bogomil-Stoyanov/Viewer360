@@ -40,7 +40,7 @@ services:
       - viewer360_network
 
   phpmyadmin:
-    image: arm64v8/phpmyadmin
+    image: phpmyadmin
     container_name: viewer360_phpmyadmin
     restart: unless-stopped
     ports:

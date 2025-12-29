@@ -40,6 +40,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
+// Handle update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
+    $id = (int)($_POST['panorama_id'] ?? 0);
+    $title = trim($_POST['title'] ?? '');
+    $description = trim($_POST['description'] ?? '');
+    $isPublic = isset($_POST['is_public']);
+
+    $result = $panoramaController->update($id, $title, $description, $isPublic);
+
+    if ($result['success']) {
+        $success = $result['message'];
+    } else {
+        $errors = $result['errors'];
+    }
+}
+
 // Get user's panoramas
 $userId = AuthController::getCurrentUserId();
 $panoramas = $panoramaController->getUserPanoramas($userId);
@@ -150,6 +166,14 @@ include __DIR__ . '/../views/header.php';
                                      style="height: 150px; object-fit: cover;">
                                 <div class="card-body">
                                     <h5 class="card-title"><?= htmlspecialchars($panorama['title']) ?></h5>
+                                    <?php if (!empty($panorama['original_panorama_id'])): ?>
+                                        <div class="mb-2">
+                                            <span class="badge bg-purple" style="background-color: #6f42c1;">
+                                                <i class="bi bi-arrow-return-left"></i> Remixed from 
+                                                <?= htmlspecialchars($panorama['original_username'] ?? 'Unknown') ?>
+                                            </span>
+                                        </div>
+                                    <?php endif; ?>
                                     <?php if ($panorama['description']): ?>
                                         <p class="card-text text-muted small">
                                             <?= htmlspecialchars(substr($panorama['description'], 0, 100)) ?>
@@ -175,8 +199,12 @@ include __DIR__ . '/../views/header.php';
                                     <div class="btn-group w-100">
                                         <a href="/view.php?id=<?= $panorama['id'] ?>" 
                                            class="btn btn-outline-primary btn-sm">
-                                            <i class="bi bi-eye"></i> View 360°
+                                            <i class="bi bi-eye"></i> View
                                         </a>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                onclick="openEditModal(<?= $panorama['id'] ?>, '<?= htmlspecialchars(addslashes($panorama['title'])) ?>', '<?= htmlspecialchars(addslashes($panorama['description'] ?? '')) ?>', <?= $panorama['is_public'] ? 'true' : 'false' ?>)">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </button>
                                         <button type="button" class="btn btn-outline-danger btn-sm"
                                                 onclick="confirmDelete(<?= $panorama['id'] ?>, '<?= htmlspecialchars(addslashes($panorama['title'])) ?>')">
                                             <i class="bi bi-trash"></i> Delete
@@ -216,11 +244,64 @@ include __DIR__ . '/../views/header.php';
     </div>
 </div>
 
+<!-- Edit Panorama Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-pencil"></i> Edit Panorama</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="/dashboard.php" id="editForm">
+                <div class="modal-body">
+                    <input type="hidden" name="action" value="update">
+                    <input type="hidden" name="panorama_id" id="editPanoramaId">
+                    
+                    <div class="mb-3">
+                        <label for="editTitle" class="form-label">Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="editTitle" name="title" 
+                               maxlength="200" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="editDescription" name="description" 
+                                  rows="3" maxlength="1000"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="editIsPublic" name="is_public">
+                            <label class="form-check-label" for="editIsPublic">
+                                <i class="bi bi-globe"></i> Make this panorama public (anyone can view)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 function confirmDelete(id, title) {
     document.getElementById('deletePanoramaId').value = id;
     document.getElementById('deleteTitle').textContent = title;
     new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+
+function openEditModal(id, title, description, isPublic) {
+    document.getElementById('editPanoramaId').value = id;
+    document.getElementById('editTitle').value = title;
+    document.getElementById('editDescription').value = description;
+    document.getElementById('editIsPublic').checked = isPublic;
+    new bootstrap.Modal(document.getElementById('editModal')).show();
 }
 
 // File size validation
