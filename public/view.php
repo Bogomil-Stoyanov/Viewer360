@@ -326,6 +326,170 @@ $forkCount = $panoramaController->getForkCount($id);
         .color-option[data-color="pink"] { background: #d63384; }
         .color-option[data-color="cyan"] { background: #0dcaf0; }
         .color-option[data-color="white"] { background: #ffffff; border: 1px solid #ccc; }
+        
+        /* Voting UI */
+        .voting-panel {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1001;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .vote-btn {
+            background: transparent;
+            border: none;
+            color: rgba(255,255,255,0.7);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 8px;
+            transition: all 0.2s;
+        }
+        
+        .vote-btn:hover {
+            color: white;
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .vote-btn.active.upvote {
+            color: #198754;
+        }
+        
+        .vote-btn.active.downvote {
+            color: #dc3545;
+        }
+        
+        .vote-score {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: white;
+            min-width: 40px;
+            text-align: center;
+        }
+        
+        .vote-score.positive { color: #198754; }
+        .vote-score.negative { color: #dc3545; }
+        
+        /* Marker Sidebar */
+        .marker-sidebar {
+            position: fixed;
+            top: 80px;
+            right: -320px;
+            width: 300px;
+            max-height: calc(100vh - 100px);
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 12px 0 0 12px;
+            z-index: 1001;
+            transition: right 0.3s ease;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .marker-sidebar.open {
+            right: 0;
+        }
+        
+        .sidebar-toggle {
+            position: fixed;
+            top: 80px;
+            right: 0;
+            z-index: 1002;
+            background: rgba(0,0,0,0.85);
+            border: none;
+            color: white;
+            padding: 12px 15px;
+            border-radius: 12px 0 0 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .sidebar-toggle:hover {
+            background: rgba(0,0,0,0.95);
+        }
+        
+        .sidebar-toggle.open {
+            right: 300px;
+        }
+        
+        .sidebar-header {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .sidebar-header h6 {
+            color: white;
+            margin: 0;
+        }
+        
+        .sidebar-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+        
+        .marker-list-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            margin-bottom: 5px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+            text-decoration: none;
+        }
+        
+        .marker-list-item:hover {
+            background: rgba(255,255,255,0.15);
+            color: white;
+        }
+        
+        .marker-color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+        
+        .marker-list-item .label {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 0.9rem;
+        }
+        
+        .marker-list-item .arrow {
+            opacity: 0.5;
+            margin-left: 8px;
+        }
+        
+        .empty-markers {
+            text-align: center;
+            padding: 30px 15px;
+            color: rgba(255,255,255,0.5);
+        }
+        
+        /* Export button */
+        .export-btn {
+            padding: 4px 12px;
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
@@ -360,6 +524,11 @@ $forkCount = $panoramaController->getForkCount($id);
         </div>
         <div class="d-flex align-items-center gap-2">
             <?php if ($isOwner): ?>
+                <!-- Export Data button for owners -->
+                <button class="btn btn-viewer btn-sm export-btn" id="exportDataBtn" title="Download panorama data as JSON">
+                    <i class="bi bi-download"></i> Export
+                </button>
+                
                 <!-- Edit Mode Toggle for owners -->
                 <div class="edit-mode-toggle">
                     <div class="form-check form-switch mb-0">
@@ -395,6 +564,41 @@ $forkCount = $panoramaController->getForkCount($id);
 
     <!-- 360 Viewer Container -->
     <div id="viewer"></div>
+    
+    <!-- Voting Panel (visible for public panoramas) -->
+    <?php if ($panorama['is_public']): ?>
+    <div class="voting-panel" id="votingPanel">
+        <button class="vote-btn upvote" id="upvoteBtn" title="Upvote" <?= !$isLoggedIn ? 'disabled' : '' ?>>
+            <i class="bi bi-arrow-up-circle-fill"></i>
+        </button>
+        <span class="vote-score" id="voteScore">0</span>
+        <button class="vote-btn downvote" id="downvoteBtn" title="Downvote" <?= !$isLoggedIn ? 'disabled' : '' ?>>
+            <i class="bi bi-arrow-down-circle-fill"></i>
+        </button>
+        <?php if (!$isLoggedIn): ?>
+            <a href="/login.php" class="btn btn-sm btn-outline-light ms-2">Login to Vote</a>
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
+    
+    <!-- Marker Sidebar Toggle -->
+    <button class="sidebar-toggle" id="sidebarToggle" title="Show markers list">
+        <i class="bi bi-list-ul"></i>
+    </button>
+    
+    <!-- Marker Sidebar -->
+    <div class="marker-sidebar" id="markerSidebar">
+        <div class="sidebar-header">
+            <h6><i class="bi bi-pin-map"></i> Markers</h6>
+            <span class="badge bg-primary" id="markerCount">0</span>
+        </div>
+        <div class="sidebar-body" id="markerList">
+            <div class="empty-markers">
+                <i class="bi bi-pin-map" style="font-size: 2rem; opacity: 0.3;"></i>
+                <p class="mt-2 mb-0">No markers yet</p>
+            </div>
+        </div>
+    </div>
 
     <!-- Viewer Footer (Description) -->
     <?php if (!empty($panorama['description'])): ?>
@@ -659,7 +863,50 @@ $forkCount = $panoramaController->getForkCount($id);
                 const isHighlighted = highlightMarkerId && parseInt(marker.id) === highlightMarkerId;
                 markersPlugin.addMarker(createMarkerConfig(marker, isHighlighted));
             });
+            
+            // Update sidebar
+            updateMarkerSidebar();
         }
+        
+        // Update the marker sidebar list
+        function updateMarkerSidebar() {
+            const listContainer = document.getElementById('markerList');
+            const countBadge = document.getElementById('markerCount');
+            
+            countBadge.textContent = markersData.length;
+            
+            if (markersData.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="empty-markers">
+                        <i class="bi bi-pin-map" style="font-size: 2rem; opacity: 0.3;"></i>
+                        <p class="mt-2 mb-0">No markers yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            listContainer.innerHTML = markersData.map(marker => {
+                const markerColor = marker.color || 'blue';
+                const colorHex = colorMap[markerColor] || colorMap['blue'];
+                return `
+                    <div class="marker-list-item" data-marker-id="${marker.id}" onclick="navigateToMarker(${marker.id})">
+                        <div class="marker-color-dot" style="background: ${colorHex};"></div>
+                        <span class="label">${escapeHtml(marker.label)}</span>
+                        <i class="bi bi-chevron-right arrow"></i>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Navigate/animate to a marker (from sidebar click)
+        window.navigateToMarker = function(markerId) {
+            animateToMarker(markerId);
+            // Close sidebar on mobile
+            if (window.innerWidth < 768) {
+                document.getElementById('markerSidebar').classList.remove('open');
+                document.getElementById('sidebarToggle').classList.remove('open');
+            }
+        };
         
         // Create a new marker
         async function createMarker(yaw, pitch, label, description, color) {
@@ -967,6 +1214,135 @@ $forkCount = $panoramaController->getForkCount($id);
                     forkPanorama();
                 }
             });
+        }
+        
+        // ========== VOTING SYSTEM ==========
+        
+        let currentUserVote = 0;
+        let currentScore = 0;
+        
+        async function loadVoteStatus() {
+            try {
+                const response = await fetch(`/api.php?action=vote/status&panorama_id=${panoramaId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentScore = data.score;
+                    currentUserVote = data.userVote;
+                    updateVoteUI();
+                }
+            } catch (error) {
+                console.error('Failed to load vote status:', error);
+            }
+        }
+        
+        function updateVoteUI() {
+            const scoreEl = document.getElementById('voteScore');
+            const upBtn = document.getElementById('upvoteBtn');
+            const downBtn = document.getElementById('downvoteBtn');
+            
+            if (!scoreEl) return;
+            
+            scoreEl.textContent = currentScore;
+            scoreEl.classList.remove('positive', 'negative');
+            if (currentScore > 0) scoreEl.classList.add('positive');
+            else if (currentScore < 0) scoreEl.classList.add('negative');
+            
+            if (upBtn) {
+                upBtn.classList.toggle('active', currentUserVote === 1);
+            }
+            if (downBtn) {
+                downBtn.classList.toggle('active', currentUserVote === -1);
+            }
+        }
+        
+        async function castVote(value) {
+            if (!isLoggedIn) {
+                window.location.href = '/login.php';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api.php?action=vote/toggle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        panorama_id: panoramaId,
+                        value: value
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentScore = data.score;
+                    currentUserVote = data.userVote;
+                    updateVoteUI();
+                } else {
+                    if (data.error) alert(data.error);
+                }
+            } catch (error) {
+                console.error('Failed to vote:', error);
+            }
+        }
+        
+        // Vote button handlers
+        const upvoteBtn = document.getElementById('upvoteBtn');
+        const downvoteBtn = document.getElementById('downvoteBtn');
+        
+        if (upvoteBtn) {
+            upvoteBtn.addEventListener('click', () => castVote(1));
+        }
+        if (downvoteBtn) {
+            downvoteBtn.addEventListener('click', () => castVote(-1));
+        }
+        
+        // ========== SIDEBAR TOGGLE ==========
+        
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const markerSidebar = document.getElementById('markerSidebar');
+        
+        if (sidebarToggle && markerSidebar) {
+            sidebarToggle.addEventListener('click', () => {
+                sidebarToggle.classList.toggle('open');
+                markerSidebar.classList.toggle('open');
+            });
+        }
+        
+        // ========== EXPORT DATA ==========
+        
+        const exportDataBtn = document.getElementById('exportDataBtn');
+        if (exportDataBtn) {
+            exportDataBtn.addEventListener('click', async () => {
+                try {
+                    const response = await fetch(`/api.php?action=panorama/export&panorama_id=${panoramaId}`);
+                    const data = await response.json();
+                    
+                    if (!response.ok) {
+                        alert(data.error || 'Failed to export data');
+                        return;
+                    }
+                    
+                    // Create download
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `panorama-${panoramaId}-export.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error('Failed to export:', error);
+                    alert('Failed to export data. Please try again.');
+                }
+            });
+        }
+        
+        // Load vote status on page load
+        if (document.getElementById('votingPanel')) {
+            loadVoteStatus();
         }
     </script>
 </body>

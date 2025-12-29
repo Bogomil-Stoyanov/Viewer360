@@ -28,7 +28,10 @@ include __DIR__ . '/../views/header.php';
                 Upload, view, and share your panoramic images in stunning 360-degree interactive views.
             </p>
             <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
-                <a href="/login.php" class="btn btn-primary btn-lg px-4 gap-3">
+                <a href="/explore.php" class="btn btn-primary btn-lg px-4 gap-3">
+                    <i class="bi bi-compass"></i> Explore Gallery
+                </a>
+                <a href="/login.php" class="btn btn-outline-primary btn-lg px-4 gap-3">
                     <i class="bi bi-box-arrow-in-right"></i> Login
                 </a>
                 <a href="/register.php" class="btn btn-outline-secondary btn-lg px-4">

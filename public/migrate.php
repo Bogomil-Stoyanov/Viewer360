@@ -65,6 +65,30 @@ try {
         echo "✓ color column already exists\n";
     }
     
+    // Check if votes table exists
+    $stmt = $db->query("SHOW TABLES LIKE 'votes'");
+    if ($stmt->rowCount() == 0) {
+        echo "Creating votes table...\n";
+        $db->exec("
+            CREATE TABLE votes (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT NOT NULL,
+                panorama_id INT NOT NULL,
+                value TINYINT NOT NULL COMMENT '1 for upvote, -1 for downvote',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (panorama_id) REFERENCES panoramas(id) ON DELETE CASCADE,
+                UNIQUE KEY unique_user_panorama_vote (user_id, panorama_id),
+                INDEX idx_panorama_id (panorama_id),
+                INDEX idx_user_id (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+        echo "✓ Created votes table\n";
+    } else {
+        echo "✓ votes table already exists\n";
+    }
+    
     echo "\n✅ Migration completed successfully!\n";
     
 } catch (PDOException $e) {

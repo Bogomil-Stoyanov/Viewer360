@@ -7,6 +7,9 @@
  *   POST /api.php?action=marker/update
  *   POST /api.php?action=marker/delete
  *   POST /api.php?action=panorama/fork
+ *   POST /api.php?action=vote/toggle
+ *   GET  /api.php?action=vote/status&panorama_id=X
+ *   GET  /api.php?action=panorama/export&panorama_id=X
  */
 
 require_once __DIR__ . '/autoload.php';
@@ -14,6 +17,7 @@ require_once __DIR__ . '/autoload.php';
 use App\Controllers\AuthController;
 use App\Controllers\MarkerController;
 use App\Controllers\PanoramaController;
+use App\Controllers\VoteController;
 
 // Set JSON response header
 header('Content-Type: application/json');
@@ -21,6 +25,7 @@ header('Content-Type: application/json');
 // Initialize controllers
 $markerController = new MarkerController();
 $panoramaController = new PanoramaController();
+$voteController = new VoteController();
 
 // Get action from query string
 $action = $_GET['action'] ?? '';
@@ -174,6 +179,147 @@ try {
                 http_response_code(400);
             }
             echo json_encode($result);
+            break;
+        
+        // ========== VOTE ENDPOINTS ==========
+        
+        case 'vote/toggle':
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+                exit;
+            }
+            
+            if (!AuthController::isLoggedIn()) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'error' => 'You must be logged in to vote.']);
+                exit;
+            }
+            
+            $panoramaId = (int)($inputData['panorama_id'] ?? 0);
+            $voteValue = (int)($inputData['value'] ?? 0);
+            $userId = AuthController::getCurrentUserId();
+            
+            if ($panoramaId <= 0) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Invalid panorama ID']);
+                exit;
+            }
+            
+            if (!in_array($voteValue, [-1, 1])) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Invalid vote value']);
+                exit;
+            }
+            
+            $result = $voteController->toggleVote($panoramaId, $userId, $voteValue);
+            
+            if (!$result['success']) {
+                http_response_code(400);
+            }
+            echo json_encode($result);
+            break;
+        
+        case 'vote/status':
+            if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+                exit;
+            }
+            
+            $panoramaId = (int)($_GET['panorama_id'] ?? 0);
+            
+            if ($panoramaId <= 0) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Invalid panorama ID']);
+                exit;
+            }
+            
+            $score = $voteController->getVoteScore($panoramaId);
+            $userVote = 0;
+            
+            if (AuthController::isLoggedIn()) {
+                $userVote = $voteController->getUserVote($panoramaId, AuthController::getCurrentUserId());
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'score' => $score,
+                'userVote' => $userVote
+            ]);
+            break;
+        
+        case 'panorama/export':
+            if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+                exit;
+            }
+            
+            if (!AuthController::isLoggedIn()) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'error' => 'You must be logged in to export data.']);
+                exit;
+            }
+            
+            $panoramaId = (int)($_GET['panorama_id'] ?? 0);
+            $userId = AuthController::getCurrentUserId();
+            
+            if ($panoramaId <= 0) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Invalid panorama ID']);
+                exit;
+            }
+            
+            // Get panorama
+            $panorama = $panoramaController->getPanorama($panoramaId);
+            
+            if (!$panorama) {
+                http_response_code(404);
+                echo json_encode(['success' => false, 'error' => 'Panorama not found']);
+                exit;
+            }
+            
+            // Only owner can export
+            if ((int)$panorama['user_id'] !== $userId) {
+                http_response_code(403);
+                echo json_encode(['success' => false, 'error' => 'You can only export your own panoramas']);
+                exit;
+            }
+            
+            // Get markers
+            $markers = $markerController->getByPanorama($panoramaId);
+            
+            // Get vote score
+            $voteScore = $voteController->getVoteScore($panoramaId);
+            
+            // Build export data
+            $exportData = [
+                'exported_at' => date('c'),
+                'panorama' => [
+                    'id' => (int)$panorama['id'],
+                    'title' => $panorama['title'],
+                    'description' => $panorama['description'],
+                    'file_path' => $panorama['file_path'],
+                    'is_public' => (bool)$panorama['is_public'],
+                    'created_at' => $panorama['created_at'],
+                    'vote_score' => $voteScore
+                ],
+                'markers' => array_map(function($m) {
+                    return [
+                        'id' => (int)$m['id'],
+                        'yaw' => (float)$m['yaw'],
+                        'pitch' => (float)$m['pitch'],
+                        'label' => $m['label'],
+                        'description' => $m['description'],
+                        'type' => $m['type'],
+                        'color' => $m['color'],
+                        'created_at' => $m['created_at']
+                    ];
+                }, $markers)
+            ];
+            
+            echo json_encode($exportData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
             break;
             
         default:
