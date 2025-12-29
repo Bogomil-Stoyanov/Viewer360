@@ -7,6 +7,7 @@
  *   POST /api.php?action=marker/update
  *   POST /api.php?action=marker/delete
  *   POST /api.php?action=panorama/fork
+ *   GET  /api.php?action=panorama/user-list - Get user's panoramas for portal linking
  *   POST /api.php?action=vote/toggle
  *   GET  /api.php?action=vote/status&panorama_id=X
  *   GET  /api.php?action=panorama/export&panorama_id=X
@@ -59,13 +60,14 @@ try {
             $description = trim($inputData['description'] ?? '');
             $type = trim($inputData['type'] ?? 'text');
             $color = trim($inputData['color'] ?? 'blue');
+            $targetPanoramaId = !empty($inputData['target_panorama_id']) ? (int)$inputData['target_panorama_id'] : null;
             
             // Get audio file if uploaded (supports multipart/form-data)
             $audioFile = isset($_FILES['audio_file']) && $_FILES['audio_file']['error'] !== UPLOAD_ERR_NO_FILE 
                          ? $_FILES['audio_file'] 
                          : null;
             
-            $result = $markerController->create($panoramaId, $yaw, $pitch, $label, $description, $type, $color, $audioFile);
+            $result = $markerController->create($panoramaId, $yaw, $pitch, $label, $description, $type, $color, $audioFile, $targetPanoramaId);
             
             if (!$result['success']) {
                 http_response_code(400);
@@ -129,13 +131,14 @@ try {
             $type = trim($inputData['type'] ?? 'text');
             $color = trim($inputData['color'] ?? 'blue');
             $removeAudio = filter_var($inputData['remove_audio'] ?? false, FILTER_VALIDATE_BOOLEAN);
+            $targetPanoramaId = !empty($inputData['target_panorama_id']) ? (int)$inputData['target_panorama_id'] : null;
             
             // Get audio file if uploaded (supports multipart/form-data)
             $audioFile = isset($_FILES['audio_file']) && $_FILES['audio_file']['error'] !== UPLOAD_ERR_NO_FILE 
                          ? $_FILES['audio_file'] 
                          : null;
             
-            $result = $markerController->update($markerId, $label, $description, $type, $color, $audioFile, $removeAudio);
+            $result = $markerController->update($markerId, $label, $description, $type, $color, $audioFile, $removeAudio, $targetPanoramaId);
             
             if (!$result['success']) {
                 http_response_code(400);
@@ -190,6 +193,31 @@ try {
                 http_response_code(400);
             }
             echo json_encode($result);
+            break;
+        
+        case 'panorama/user-list':
+            // Get all panoramas owned by the current user (for portal linking dropdown)
+            if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+                http_response_code(405);
+                echo json_encode(['success' => false, 'error' => 'Method not allowed']);
+                exit;
+            }
+            
+            if (!AuthController::isLoggedIn()) {
+                http_response_code(401);
+                echo json_encode(['success' => false, 'error' => 'You must be logged in.']);
+                exit;
+            }
+            
+            $userId = AuthController::getCurrentUserId();
+            $excludeId = isset($_GET['exclude_id']) ? (int)$_GET['exclude_id'] : null;
+            
+            $panoramas = $panoramaController->getUserPanoramasForLinking($userId, $excludeId);
+            
+            echo json_encode([
+                'success' => true,
+                'panoramas' => $panoramas
+            ]);
             break;
         
         // ========== VOTE ENDPOINTS ==========
@@ -325,6 +353,8 @@ try {
                         'description' => $m['description'],
                         'type' => $m['type'],
                         'color' => $m['color'],
+                        'audio_path' => $m['audio_path'] ?? null,
+                        'target_panorama_id' => isset($m['target_panorama_id']) ? (int)$m['target_panorama_id'] : null,
                         'created_at' => $m['created_at']
                     ];
                 }, $markers)

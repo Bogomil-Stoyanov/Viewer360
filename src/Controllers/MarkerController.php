@@ -23,7 +23,7 @@ class MarkerController
         'white' => '#ffffff'
     ];
 
-    public function create(int $panoramaId, float $yaw, float $pitch, string $label, string $description = '', string $type = 'text', string $color = 'blue', ?array $audioFile = null): array
+    public function create(int $panoramaId, float $yaw, float $pitch, string $label, string $description = '', string $type = 'text', string $color = 'blue', ?array $audioFile = null, ?int $targetPanoramaId = null): array
     {
         if (!AuthController::isLoggedIn()) {
             return ['success' => false, 'error' => 'You must be logged in to create markers.'];
@@ -58,6 +58,24 @@ class MarkerController
             return ['success' => false, 'error' => 'You can only add markers to your own panoramas.'];
         }
 
+        // Validate target panorama if it's a portal marker
+        if ($targetPanoramaId !== null) {
+            $targetPanorama = $panoramaController->getPanorama($targetPanoramaId);
+            if (!$targetPanorama) {
+                return ['success' => false, 'error' => 'Target panorama not found.'];
+            }
+            // Target must be user's own panorama
+            if ((int)$targetPanorama['user_id'] !== $userId) {
+                return ['success' => false, 'error' => 'You can only link to your own panoramas.'];
+            }
+            // Can't link to itself
+            if ($targetPanoramaId === $panoramaId) {
+                return ['success' => false, 'error' => 'Cannot link a panorama to itself.'];
+            }
+            // Force type to 'portal' when linking
+            $type = 'portal';
+        }
+
         // Handle audio file upload if provided
         $audioPath = null;
         if ($audioFile !== null && isset($audioFile['tmp_name']) && !empty($audioFile['tmp_name'])) {
@@ -70,9 +88,9 @@ class MarkerController
 
         try {
             Database::query(
-                "INSERT INTO markers (panorama_id, user_id, yaw, pitch, type, color, label, description, audio_path) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [$panoramaId, $userId, $yaw, $pitch, $type, $color, $label, $description, $audioPath]
+                "INSERT INTO markers (panorama_id, user_id, yaw, pitch, type, color, label, description, audio_path, target_panorama_id) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [$panoramaId, $userId, $yaw, $pitch, $type, $color, $label, $description, $audioPath, $targetPanoramaId]
             );
 
             $markerId = Database::lastInsertId();
@@ -89,7 +107,8 @@ class MarkerController
                     'color' => $color,
                     'label' => $label,
                     'description' => $description,
-                    'audio_path' => $audioPath
+                    'audio_path' => $audioPath,
+                    'target_panorama_id' => $targetPanoramaId
                 ]
             ];
         } catch (\PDOException $e) {
@@ -146,7 +165,7 @@ class MarkerController
     /**
      * Update a marker
      */
-    public function update(int $id, string $label, string $description = '', string $type = 'text', string $color = 'blue', ?array $audioFile = null, bool $removeAudio = false): array
+    public function update(int $id, string $label, string $description = '', string $type = 'text', string $color = 'blue', ?array $audioFile = null, bool $removeAudio = false, ?int $targetPanoramaId = null): array
     {
         if (!AuthController::isLoggedIn()) {
             return ['success' => false, 'error' => 'You must be logged in to update markers.'];
@@ -174,6 +193,25 @@ class MarkerController
             $color = 'blue';
         }
 
+        // Validate target panorama if it's a portal marker
+        $panoramaController = new PanoramaController();
+        if ($targetPanoramaId !== null) {
+            $targetPanorama = $panoramaController->getPanorama($targetPanoramaId);
+            if (!$targetPanorama) {
+                return ['success' => false, 'error' => 'Target panorama not found.'];
+            }
+            // Target must be user's own panorama
+            if ((int)$targetPanorama['user_id'] !== $userId) {
+                return ['success' => false, 'error' => 'You can only link to your own panoramas.'];
+            }
+            // Can't link to itself
+            if ($targetPanoramaId === (int)$marker['panorama_id']) {
+                return ['success' => false, 'error' => 'Cannot link a panorama to itself.'];
+            }
+            // Force type to 'portal' when linking
+            $type = 'portal';
+        }
+
         // Handle audio: remove, replace, or keep existing
         $audioPath = $marker['audio_path'] ?? null;
         
@@ -198,8 +236,8 @@ class MarkerController
 
         try {
             Database::query(
-                "UPDATE markers SET label = ?, description = ?, type = ?, color = ?, audio_path = ? WHERE id = ?",
-                [$label, $description, $type, $color, $audioPath, $id]
+                "UPDATE markers SET label = ?, description = ?, type = ?, color = ?, audio_path = ?, target_panorama_id = ? WHERE id = ?",
+                [$label, $description, $type, $color, $audioPath, $targetPanoramaId, $id]
             );
 
             return [
@@ -209,7 +247,8 @@ class MarkerController
                     'description' => $description,
                     'type' => $type,
                     'color' => $color,
-                    'audio_path' => $audioPath
+                    'audio_path' => $audioPath,
+                    'target_panorama_id' => $targetPanoramaId
                 ])
             ];
         } catch (\PDOException $e) {
@@ -337,17 +376,19 @@ class MarkerController
 
     /**
      * Copy all markers from one panorama to another
-     */
-    /**
-     * Copy all markers from one panorama to another
      * Keeps the original author (user_id) so attribution is preserved
+     * Note: Portal markers (target_panorama_id) are NOT copied as they reference 
+     * panoramas in the original user's collection
      */
     public function copyMarkers(int $sourcePanoramaId, int $targetPanoramaId, int $newUserId): bool
     {
         try {
             // Keep original user_id to preserve author attribution
+            // Exclude portal markers (target_panorama_id IS NOT NULL) as they link to original user's panoramas
             $markers = Database::query(
-                "SELECT user_id, yaw, pitch, type, color, label, description, audio_path FROM markers WHERE panorama_id = ?",
+                "SELECT user_id, yaw, pitch, type, color, label, description, audio_path 
+                 FROM markers 
+                 WHERE panorama_id = ? AND target_panorama_id IS NULL",
                 [$sourcePanoramaId]
             )->fetchAll();
 

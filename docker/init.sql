@@ -42,12 +42,15 @@ CREATE TABLE IF NOT EXISTS markers (
     label VARCHAR(200) NOT NULL,
     description TEXT,
     audio_path VARCHAR(255) DEFAULT NULL,
+    target_panorama_id INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (panorama_id) REFERENCES panoramas(id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_panorama_id) REFERENCES panoramas(id) ON DELETE SET NULL,
     INDEX idx_panorama_id (panorama_id),
-    INDEX idx_user_id (user_id)
+    INDEX idx_user_id (user_id),
+    INDEX idx_target_panorama_id (target_panorama_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Create votes table for upvote/downvote system

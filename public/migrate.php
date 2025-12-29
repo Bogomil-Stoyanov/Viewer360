@@ -119,6 +119,17 @@ try {
         echo "✓ audio_path column already exists\n";
     }
     
+    // Check if target_panorama_id column exists in markers table (for portal markers)
+    $stmt = $db->query("SHOW COLUMNS FROM markers LIKE 'target_panorama_id'");
+    if ($stmt->rowCount() == 0) {
+        echo "Adding target_panorama_id column to markers table...\n";
+        $db->exec("ALTER TABLE markers ADD COLUMN target_panorama_id INT DEFAULT NULL AFTER audio_path");
+        $db->exec("ALTER TABLE markers ADD INDEX idx_target_panorama_id (target_panorama_id)");
+        echo "✓ Added target_panorama_id column\n";
+    } else {
+        echo "✓ target_panorama_id column already exists\n";
+    }
+    
     echo "\n✅ Migration completed successfully!\n";
     
 } catch (PDOException $e) {
