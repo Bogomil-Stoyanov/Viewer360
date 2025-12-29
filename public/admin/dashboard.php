@@ -63,12 +63,12 @@ $currentPage = 'admin';
     
     <style>
         body {
-            background-color: #1a1a2e;
+            background-color: #f8f9fa;
             min-height: 100vh;
         }
         
         .admin-sidebar {
-            background: #16213e;
+            background: #343a40;
             min-height: 100vh;
             padding: 20px;
         }
@@ -90,22 +90,23 @@ $currentPage = 'admin';
         }
         
         .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #0d6efd;
             border-radius: 15px;
             padding: 25px;
             color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
         
         .stat-card.users {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            background: #198754;
         }
         
         .stat-card.panoramas {
-            background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+            background: #fd7e14;
         }
         
         .stat-card.storage {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #6f42c1;
         }
         
         .stat-card h2 {
@@ -120,29 +121,30 @@ $currentPage = 'admin';
         }
         
         .card {
-            background: #16213e;
-            border: none;
-            border-radius: 15px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
         
         .card-header {
-            background: rgba(255,255,255,0.05);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            color: white;
+            background: #f8f9fa;
+            border-bottom: 1px solid #dee2e6;
+            color: #212529;
         }
         
         .table {
-            color: rgba(255,255,255,0.9);
+            color: #212529;
         }
         
         .table thead th {
-            border-bottom-color: rgba(255,255,255,0.1);
-            color: rgba(255,255,255,0.7);
+            border-bottom-color: #dee2e6;
+            color: #6c757d;
             font-weight: 500;
         }
         
         .table tbody td {
-            border-bottom-color: rgba(255,255,255,0.05);
+            border-bottom-color: #f1f1f1;
             vertical-align: middle;
         }
         
@@ -154,7 +156,7 @@ $currentPage = 'admin';
         }
         
         .badge-admin {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #6f42c1;
         }
         
         .badge-banned {
@@ -167,29 +169,37 @@ $currentPage = 'admin';
         }
         
         .nav-tabs {
-            border-bottom-color: rgba(255,255,255,0.1);
+            border-bottom-color: #dee2e6;
         }
         
         .nav-tabs .nav-link {
-            color: rgba(255,255,255,0.7);
+            color: #6c757d;
             border: none;
             border-bottom: 2px solid transparent;
         }
         
         .nav-tabs .nav-link:hover {
-            color: white;
+            color: #212529;
             border-color: transparent;
         }
         
         .nav-tabs .nav-link.active {
             background: transparent;
-            color: white;
-            border-bottom-color: #667eea;
+            color: #0d6efd;
+            border-bottom-color: #0d6efd;
         }
         
         .filter-badge {
-            background: #667eea;
+            background: #0d6efd;
             color: white;
+        }
+        
+        .page-title {
+            color: #212529;
+        }
+        
+        .text-white-override {
+            color: #212529 !important;
         }
     </style>
 </head>
@@ -216,7 +226,7 @@ $currentPage = 'admin';
             
             <!-- Main Content -->
             <div class="col-md-10 admin-content">
-                <h2 class="text-white mb-4">Dashboard Overview</h2>
+                <h2 class="page-title mb-4">Dashboard Overview</h2>
                 
                 <!-- Stats Row -->
                 <div class="row mb-4">
@@ -372,7 +382,7 @@ $currentPage = 'admin';
                                                          alt="<?= htmlspecialchars($panorama['title']) ?>">
                                                 </td>
                                                 <td>
-                                                    <a href="/view.php?id=<?= $panorama['id'] ?>" target="_blank" class="text-white">
+                                                    <a href="/view.php?id=<?= $panorama['id'] ?>" target="_blank" class="text-primary">
                                                         <?= htmlspecialchars($panorama['title']) ?>
                                                         <i class="bi bi-box-arrow-up-right ms-1"></i>
                                                     </a>
@@ -426,7 +436,7 @@ $currentPage = 'admin';
                                 </div>
                                 
                                 <div class="mb-4">
-                                    <p class="text-white">Current storage usage: <strong><?= $stats['storage_formatted'] ?></strong></p>
+                                    <p class="text-dark">Current storage usage: <strong><?= $stats['storage_formatted'] ?></strong></p>
                                 </div>
                                 
                                 <button class="btn btn-warning btn-lg" onclick="runCleanup()" id="cleanupBtn">
@@ -547,7 +557,7 @@ $currentPage = 'admin';
                         `Deleted ${data.deleted_count} orphan file(s). Freed ${data.freed_space_formatted} of space.`;
                     
                     if (data.orphan_files.length > 0) {
-                        let html = '<h6 class="text-white">Deleted files:</h6><ul class="text-white">';
+                        let html = '<h6 class="text-dark">Deleted files:</h6><ul class="text-dark">';
                         data.orphan_files.forEach(f => {
                             html += `<li>${f.name} (${f.size_formatted})</li>`;
                         });
