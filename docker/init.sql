@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS markers (
     yaw DOUBLE NOT NULL,
     pitch DOUBLE NOT NULL,
     type VARCHAR(50) DEFAULT 'text',
+    color VARCHAR(20) DEFAULT 'blue',
     label VARCHAR(200) NOT NULL,
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

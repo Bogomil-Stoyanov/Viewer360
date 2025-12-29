@@ -99,7 +99,7 @@ $forkCount = $panoramaController->getForkCount($id);
         }
         
         .viewer-footer {
-            bottom: 0;
+            bottom: 40px;
             left: 0;
             right: 0;
             background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
@@ -174,6 +174,7 @@ $forkCount = $panoramaController->getForkCount($id);
             width: 3em;
             height: 1.5em;
             cursor: pointer;
+            margin-right: 0.5em;
         }
         
         .edit-mode-toggle .form-check-input:checked {
@@ -290,6 +291,41 @@ $forkCount = $panoramaController->getForkCount($id);
             color: white;
             text-decoration: underline;
         }
+        
+        /* Color picker */
+        .color-picker {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .color-option {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        
+        .color-option:hover {
+            transform: scale(1.1);
+        }
+        
+        .color-option.selected {
+            border-color: #333;
+            box-shadow: 0 0 0 2px white;
+        }
+        
+        .color-option[data-color="blue"] { background: #0d6efd; }
+        .color-option[data-color="red"] { background: #dc3545; }
+        .color-option[data-color="green"] { background: #198754; }
+        .color-option[data-color="yellow"] { background: #ffc107; }
+        .color-option[data-color="orange"] { background: #fd7e14; }
+        .color-option[data-color="purple"] { background: #6f42c1; }
+        .color-option[data-color="pink"] { background: #d63384; }
+        .color-option[data-color="cyan"] { background: #0dcaf0; }
+        .color-option[data-color="white"] { background: #ffffff; border: 1px solid #ccc; }
     </style>
 </head>
 <body>
@@ -381,6 +417,7 @@ $forkCount = $panoramaController->getForkCount($id);
                     <form id="addMarkerForm">
                         <input type="hidden" id="markerYaw" name="yaw">
                         <input type="hidden" id="markerPitch" name="pitch">
+                        <input type="hidden" id="markerColor" name="color" value="blue">
                         <div class="mb-3">
                             <label for="markerLabel" class="form-label">Label <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="markerLabel" name="label" required maxlength="200" placeholder="Enter a title for this marker">
@@ -388,6 +425,20 @@ $forkCount = $panoramaController->getForkCount($id);
                         <div class="mb-3">
                             <label for="markerDescription" class="form-label">Description</label>
                             <textarea class="form-control" id="markerDescription" name="description" rows="3" placeholder="Add more details about this location..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Pin Color</label>
+                            <div class="color-picker" id="addColorPicker">
+                                <div class="color-option selected" data-color="blue" title="Blue"></div>
+                                <div class="color-option" data-color="red" title="Red"></div>
+                                <div class="color-option" data-color="green" title="Green"></div>
+                                <div class="color-option" data-color="yellow" title="Yellow"></div>
+                                <div class="color-option" data-color="orange" title="Orange"></div>
+                                <div class="color-option" data-color="purple" title="Purple"></div>
+                                <div class="color-option" data-color="pink" title="Pink"></div>
+                                <div class="color-option" data-color="cyan" title="Cyan"></div>
+                                <div class="color-option" data-color="white" title="White"></div>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -412,6 +463,7 @@ $forkCount = $panoramaController->getForkCount($id);
                 <div class="modal-body">
                     <form id="editMarkerForm">
                         <input type="hidden" id="editMarkerId" name="id">
+                        <input type="hidden" id="editMarkerColor" name="color" value="blue">
                         <div class="mb-3">
                             <label for="editMarkerLabel" class="form-label">Label <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="editMarkerLabel" name="label" required maxlength="200">
@@ -419,6 +471,20 @@ $forkCount = $panoramaController->getForkCount($id);
                         <div class="mb-3">
                             <label for="editMarkerDescription" class="form-label">Description</label>
                             <textarea class="form-control" id="editMarkerDescription" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Pin Color</label>
+                            <div class="color-picker" id="editColorPicker">
+                                <div class="color-option" data-color="blue" title="Blue"></div>
+                                <div class="color-option" data-color="red" title="Red"></div>
+                                <div class="color-option" data-color="green" title="Green"></div>
+                                <div class="color-option" data-color="yellow" title="Yellow"></div>
+                                <div class="color-option" data-color="orange" title="Orange"></div>
+                                <div class="color-option" data-color="purple" title="Purple"></div>
+                                <div class="color-option" data-color="pink" title="Pink"></div>
+                                <div class="color-option" data-color="cyan" title="Cyan"></div>
+                                <div class="color-option" data-color="white" title="White"></div>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -465,6 +531,19 @@ $forkCount = $panoramaController->getForkCount($id);
         let editMode = false;
         let markersData = [];
         
+        // Color mapping
+        const colorMap = {
+            'blue': '#0d6efd',
+            'red': '#dc3545',
+            'green': '#198754',
+            'yellow': '#ffc107',
+            'orange': '#fd7e14',
+            'purple': '#6f42c1',
+            'pink': '#d63384',
+            'cyan': '#0dcaf0',
+            'white': '#ffffff'
+        };
+        
         // Initialize viewer with markers plugin
         const viewer = new Viewer({
             container: document.querySelector('#viewer'),
@@ -490,9 +569,20 @@ $forkCount = $panoramaController->getForkCount($id);
         
         // ========== MARKER FUNCTIONS ==========
         
+        // Get CSS gradient for marker color
+        function getMarkerGradient(color, isHighlighted = false) {
+            if (isHighlighted) {
+                return 'linear-gradient(135deg, #ffc107 0%, #fd7e14 100%)';
+            }
+            const hex = colorMap[color] || colorMap['blue'];
+            // Darken the color slightly for gradient end
+            return `linear-gradient(135deg, ${hex} 0%, ${hex}dd 100%)`;
+        }
+        
         // Create marker element for Photo Sphere Viewer
         function createMarkerConfig(marker, isHighlighted = false) {
             const shareUrl = `${window.location.origin}/view.php?id=${panoramaId}&marker=${marker.id}`;
+            const markerColor = marker.color || 'blue';
             const tooltipContent = `
                 <div class="marker-tooltip">
                     <h6>${escapeHtml(marker.label)}</h6>
@@ -508,15 +598,20 @@ $forkCount = $panoramaController->getForkCount($id);
                 </div>
             `;
             
+            const markerGradient = getMarkerGradient(markerColor, isHighlighted);
+            const borderColor = markerColor === 'white' ? '#ccc' : 'white';
+            
             return {
                 id: `marker-${marker.id}`,
                 position: { yaw: parseFloat(marker.yaw), pitch: parseFloat(marker.pitch) },
-                html: `<div class="custom-marker ${isHighlighted ? 'highlighted' : ''}" data-marker-id="${marker.id}"></div>`,
+                html: `<div class="custom-marker ${isHighlighted ? 'highlighted' : ''}" 
+                            data-marker-id="${marker.id}" 
+                            style="background: ${markerGradient}; border-color: ${borderColor};"></div>`,
                 anchor: 'center center',
                 tooltip: {
                     content: tooltipContent,
                     position: 'top center',
-                    trigger: 'hover'
+                    trigger: 'click'
                 },
                 data: marker
             };
@@ -567,7 +662,7 @@ $forkCount = $panoramaController->getForkCount($id);
         }
         
         // Create a new marker
-        async function createMarker(yaw, pitch, label, description) {
+        async function createMarker(yaw, pitch, label, description, color) {
             try {
                 const response = await fetch('/api.php?action=marker/create', {
                     method: 'POST',
@@ -578,6 +673,7 @@ $forkCount = $panoramaController->getForkCount($id);
                         pitch: pitch,
                         label: label,
                         description: description,
+                        color: color,
                         type: 'text'
                     })
                 });
@@ -602,7 +698,7 @@ $forkCount = $panoramaController->getForkCount($id);
         }
         
         // Update a marker
-        async function updateMarker(id, label, description) {
+        async function updateMarker(id, label, description, color) {
             try {
                 const response = await fetch('/api.php?action=marker/update', {
                     method: 'POST',
@@ -611,6 +707,7 @@ $forkCount = $panoramaController->getForkCount($id);
                         id: id,
                         label: label,
                         description: description,
+                        color: color,
                         type: 'text'
                     })
                 });
@@ -623,6 +720,7 @@ $forkCount = $panoramaController->getForkCount($id);
                     if (markerIndex !== -1) {
                         markersData[markerIndex].label = label;
                         markersData[markerIndex].description = description;
+                        markersData[markerIndex].color = color;
                         
                         // Update the marker in the viewer
                         markersPlugin.updateMarker(createMarkerConfig(markersData[markerIndex]));
@@ -752,14 +850,37 @@ $forkCount = $panoramaController->getForkCount($id);
             const position = e.data.rightclick ? null : e.data;
             if (!position || !position.yaw || !position.pitch) return;
             
-            // Open add marker modal
+            // Open add marker modal - reset color picker
             document.getElementById('markerYaw').value = position.yaw;
             document.getElementById('markerPitch').value = position.pitch;
             document.getElementById('markerLabel').value = '';
             document.getElementById('markerDescription').value = '';
+            document.getElementById('markerColor').value = 'blue';
+            
+            // Reset color picker selection
+            document.querySelectorAll('#addColorPicker .color-option').forEach(opt => {
+                opt.classList.toggle('selected', opt.dataset.color === 'blue');
+            });
             
             const modal = new bootstrap.Modal(document.getElementById('addMarkerModal'));
             modal.show();
+        });
+        
+        // Color picker click handlers
+        document.querySelectorAll('#addColorPicker .color-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('#addColorPicker .color-option').forEach(o => o.classList.remove('selected'));
+                option.classList.add('selected');
+                document.getElementById('markerColor').value = option.dataset.color;
+            });
+        });
+        
+        document.querySelectorAll('#editColorPicker .color-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('#editColorPicker .color-option').forEach(o => o.classList.remove('selected'));
+                option.classList.add('selected');
+                document.getElementById('editMarkerColor').value = option.dataset.color;
+            });
         });
         
         // Save marker button
@@ -768,13 +889,14 @@ $forkCount = $panoramaController->getForkCount($id);
             const pitch = parseFloat(document.getElementById('markerPitch').value);
             const label = document.getElementById('markerLabel').value.trim();
             const description = document.getElementById('markerDescription').value.trim();
+            const color = document.getElementById('markerColor').value;
             
             if (!label) {
                 alert('Please enter a label for the marker');
                 return;
             }
             
-            const success = await createMarker(yaw, pitch, label, description);
+            const success = await createMarker(yaw, pitch, label, description, color);
             if (success) {
                 bootstrap.Modal.getInstance(document.getElementById('addMarkerModal')).hide();
             }
@@ -785,10 +907,23 @@ $forkCount = $panoramaController->getForkCount($id);
             const markerData = e.marker.config.data;
             
             if (editMode && isOwner && markerData) {
-                // Open edit modal
+                // Check if current user owns this marker
+                const currentUserId = <?= $currentUserId ?? 'null' ?>;
+                if (parseInt(markerData.user_id) !== currentUserId) {
+                    alert('You can only edit your own markers.');
+                    return;
+                }
+                
+                // Open edit modal with current data
                 document.getElementById('editMarkerId').value = markerData.id;
                 document.getElementById('editMarkerLabel').value = markerData.label || '';
                 document.getElementById('editMarkerDescription').value = markerData.description || '';
+                document.getElementById('editMarkerColor').value = markerData.color || 'blue';
+                
+                // Update color picker selection
+                document.querySelectorAll('#editColorPicker .color-option').forEach(opt => {
+                    opt.classList.toggle('selected', opt.dataset.color === (markerData.color || 'blue'));
+                });
                 
                 const modal = new bootstrap.Modal(document.getElementById('editMarkerModal'));
                 modal.show();
@@ -800,13 +935,14 @@ $forkCount = $panoramaController->getForkCount($id);
             const id = parseInt(document.getElementById('editMarkerId').value);
             const label = document.getElementById('editMarkerLabel').value.trim();
             const description = document.getElementById('editMarkerDescription').value.trim();
+            const color = document.getElementById('editMarkerColor').value;
             
             if (!label) {
                 alert('Please enter a label for the marker');
                 return;
             }
             
-            const success = await updateMarker(id, label, description);
+            const success = await updateMarker(id, label, description, color);
             if (success) {
                 bootstrap.Modal.getInstance(document.getElementById('editMarkerModal')).hide();
             }

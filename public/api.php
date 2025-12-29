@@ -53,8 +53,9 @@ try {
             $label = trim($inputData['label'] ?? '');
             $description = trim($inputData['description'] ?? '');
             $type = trim($inputData['type'] ?? 'text');
+            $color = trim($inputData['color'] ?? 'blue');
             
-            $result = $markerController->create($panoramaId, $yaw, $pitch, $label, $description, $type);
+            $result = $markerController->create($panoramaId, $yaw, $pitch, $label, $description, $type, $color);
             
             if (!$result['success']) {
                 http_response_code(400);
@@ -116,8 +117,9 @@ try {
             $label = trim($inputData['label'] ?? '');
             $description = trim($inputData['description'] ?? '');
             $type = trim($inputData['type'] ?? 'text');
+            $color = trim($inputData['color'] ?? 'blue');
             
-            $result = $markerController->update($markerId, $label, $description, $type);
+            $result = $markerController->update($markerId, $label, $description, $type, $color);
             
             if (!$result['success']) {
                 http_response_code(400);

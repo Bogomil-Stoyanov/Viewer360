@@ -39,6 +39,7 @@ try {
                 yaw DOUBLE NOT NULL,
                 pitch DOUBLE NOT NULL,
                 type VARCHAR(50) DEFAULT 'text',
+                color VARCHAR(20) DEFAULT 'blue',
                 label VARCHAR(200) NOT NULL,
                 description TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -52,6 +53,16 @@ try {
         echo "✓ Created markers table\n";
     } else {
         echo "✓ markers table already exists\n";
+    }
+    
+    // Check if color column exists in markers table
+    $stmt = $db->query("SHOW COLUMNS FROM markers LIKE 'color'");
+    if ($stmt->rowCount() == 0) {
+        echo "Adding color column to markers table...\n";
+        $db->exec("ALTER TABLE markers ADD COLUMN color VARCHAR(20) DEFAULT 'blue' AFTER type");
+        echo "✓ Added color column\n";
+    } else {
+        echo "✓ color column already exists\n";
     }
     
     echo "\n✅ Migration completed successfully!\n";

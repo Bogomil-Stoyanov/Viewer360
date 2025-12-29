@@ -141,6 +141,44 @@ class PanoramaController
         return $currentUserId !== null && $currentUserId === (int)$panorama['user_id'];
     }
 
+    /**
+     * Update panorama settings (title, description, visibility)
+     */
+    public function update(int $id, string $title, string $description, bool $isPublic): array
+    {
+        if (!AuthController::isLoggedIn()) {
+            return ['success' => false, 'errors' => ['You must be logged in to update.']];
+        }
+
+        $panorama = $this->getPanorama($id);
+
+        if (!$panorama) {
+            return ['success' => false, 'errors' => ['Panorama not found.']];
+        }
+
+        // Check ownership
+        if ((int)$panorama['user_id'] !== AuthController::getCurrentUserId()) {
+            return ['success' => false, 'errors' => ['You do not have permission to edit this panorama.']];
+        }
+
+        // Validate title
+        if (empty($title) || strlen($title) > 200) {
+            return ['success' => false, 'errors' => ['Title is required and must be less than 200 characters.']];
+        }
+
+        try {
+            Database::query(
+                "UPDATE panoramas SET title = ?, description = ?, is_public = ? WHERE id = ?",
+                [$title, $description, $isPublic ? 1 : 0, $id]
+            );
+
+            return ['success' => true, 'message' => 'Panorama updated successfully.'];
+        } catch (\PDOException $e) {
+            error_log("Panorama update error: " . $e->getMessage());
+            return ['success' => false, 'errors' => ['Failed to update panorama.']];
+        }
+    }
+
     public function delete(int $id): array
     {
         if (!AuthController::isLoggedIn()) {

@@ -9,7 +9,20 @@ class MarkerController
     /**
      * Create a new marker for a panorama
      */
-    public function create(int $panoramaId, float $yaw, float $pitch, string $label, string $description = '', string $type = 'text'): array
+    // Available marker colors
+    public const COLORS = [
+        'blue' => '#0d6efd',
+        'red' => '#dc3545',
+        'green' => '#198754',
+        'yellow' => '#ffc107',
+        'orange' => '#fd7e14',
+        'purple' => '#6f42c1',
+        'pink' => '#d63384',
+        'cyan' => '#0dcaf0',
+        'white' => '#ffffff'
+    ];
+
+    public function create(int $panoramaId, float $yaw, float $pitch, string $label, string $description = '', string $type = 'text', string $color = 'blue'): array
     {
         if (!AuthController::isLoggedIn()) {
             return ['success' => false, 'error' => 'You must be logged in to create markers.'];
@@ -20,6 +33,11 @@ class MarkerController
         // Validate inputs
         if (empty($label) || strlen($label) > 200) {
             return ['success' => false, 'error' => 'Label is required and must be less than 200 characters.'];
+        }
+
+        // Validate color
+        if (!array_key_exists($color, self::COLORS)) {
+            $color = 'blue';
         }
 
         // Check if panorama exists and user can access it
@@ -41,9 +59,9 @@ class MarkerController
 
         try {
             Database::query(
-                "INSERT INTO markers (panorama_id, user_id, yaw, pitch, type, label, description) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?)",
-                [$panoramaId, $userId, $yaw, $pitch, $type, $label, $description]
+                "INSERT INTO markers (panorama_id, user_id, yaw, pitch, type, color, label, description) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                [$panoramaId, $userId, $yaw, $pitch, $type, $color, $label, $description]
             );
 
             $markerId = Database::lastInsertId();
@@ -57,6 +75,7 @@ class MarkerController
                     'yaw' => $yaw,
                     'pitch' => $pitch,
                     'type' => $type,
+                    'color' => $color,
                     'label' => $label,
                     'description' => $description
                 ]
@@ -115,7 +134,7 @@ class MarkerController
     /**
      * Update a marker
      */
-    public function update(int $id, string $label, string $description = '', string $type = 'text'): array
+    public function update(int $id, string $label, string $description = '', string $type = 'text', string $color = 'blue'): array
     {
         if (!AuthController::isLoggedIn()) {
             return ['success' => false, 'error' => 'You must be logged in to update markers.'];
@@ -138,10 +157,15 @@ class MarkerController
             return ['success' => false, 'error' => 'Label is required and must be less than 200 characters.'];
         }
 
+        // Validate color
+        if (!array_key_exists($color, self::COLORS)) {
+            $color = 'blue';
+        }
+
         try {
             Database::query(
-                "UPDATE markers SET label = ?, description = ?, type = ? WHERE id = ?",
-                [$label, $description, $type, $id]
+                "UPDATE markers SET label = ?, description = ?, type = ?, color = ? WHERE id = ?",
+                [$label, $description, $type, $color, $id]
             );
 
             return [
@@ -149,7 +173,8 @@ class MarkerController
                 'marker' => array_merge($marker, [
                     'label' => $label,
                     'description' => $description,
-                    'type' => $type
+                    'type' => $type,
+                    'color' => $color
                 ])
             ];
         } catch (\PDOException $e) {
@@ -191,24 +216,30 @@ class MarkerController
     /**
      * Copy all markers from one panorama to another
      */
+    /**
+     * Copy all markers from one panorama to another
+     * Keeps the original author (user_id) so attribution is preserved
+     */
     public function copyMarkers(int $sourcePanoramaId, int $targetPanoramaId, int $newUserId): bool
     {
         try {
+            // Keep original user_id to preserve author attribution
             $markers = Database::query(
-                "SELECT yaw, pitch, type, label, description FROM markers WHERE panorama_id = ?",
+                "SELECT user_id, yaw, pitch, type, color, label, description FROM markers WHERE panorama_id = ?",
                 [$sourcePanoramaId]
             )->fetchAll();
 
             foreach ($markers as $marker) {
                 Database::query(
-                    "INSERT INTO markers (panorama_id, user_id, yaw, pitch, type, label, description) 
-                     VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO markers (panorama_id, user_id, yaw, pitch, type, color, label, description) 
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     [
                         $targetPanoramaId,
-                        $newUserId,
+                        $marker['user_id'],  // Keep original author!
                         $marker['yaw'],
                         $marker['pitch'],
                         $marker['type'],
+                        $marker['color'] ?? 'blue',
                         $marker['label'],
                         $marker['description']
                     ]
@@ -220,5 +251,13 @@ class MarkerController
             error_log("Copy markers error: " . $e->getMessage());
             return false;
         }
+    }
+
+    /**
+     * Get available colors
+     */
+    public static function getColors(): array
+    {
+        return self::COLORS;
     }
 }
