@@ -2,6 +2,14 @@
 
 A web-based platform for uploading, viewing, and sharing panoramic (equirectangular) images with an interactive 360° viewer.
 
+## Screenshots
+
+![Screenshot 1](readme-img/img4.png)
+![Screenshot 2](readme-img/img1.png)
+![Screenshot 3](readme-img/img3.png)
+![Screenshot 4](readme-img/img2.png)
+![Screenshot 5](readme-img/img5.png)
+
 ## Features
 
 - **User Authentication**: Secure registration and login with password hashing
@@ -48,6 +56,7 @@ A web-based platform for uploading, viewing, and sharing panoramic (equirectangu
    ```
 
 3. Access the application:
+
    - **Application**: http://localhost:8080
    - **phpMyAdmin**: http://localhost:8081
 
@@ -112,34 +121,34 @@ Viewer360/
 
 ### panoramas
 
-| Column               | Type         | Description                |
-| -------------------- | ------------ | -------------------------- |
-| id                   | INT          | Primary key                |
-| user_id              | INT          | Foreign key to users       |
-| file_path            | VARCHAR(255) | Path to uploaded file      |
-| title                | VARCHAR(200) | Panorama title             |
-| description          | TEXT         | Optional description       |
-| is_public            | BOOLEAN      | Privacy setting            |
-| original_panorama_id | INT          | Source panorama if forked  |
-| created_at           | TIMESTAMP    | Upload date                |
+| Column               | Type         | Description               |
+| -------------------- | ------------ | ------------------------- |
+| id                   | INT          | Primary key               |
+| user_id              | INT          | Foreign key to users      |
+| file_path            | VARCHAR(255) | Path to uploaded file     |
+| title                | VARCHAR(200) | Panorama title            |
+| description          | TEXT         | Optional description      |
+| is_public            | BOOLEAN      | Privacy setting           |
+| original_panorama_id | INT          | Source panorama if forked |
+| created_at           | TIMESTAMP    | Upload date               |
 
 ### markers
 
-| Column             | Type         | Description                           |
-| ------------------ | ------------ | ------------------------------------- |
-| id                 | INT          | Primary key                           |
-| panorama_id        | INT          | Foreign key to panoramas              |
-| user_id            | INT          | Foreign key to users                  |
-| yaw                | DOUBLE       | Horizontal position                   |
-| pitch              | DOUBLE       | Vertical position                     |
-| type               | VARCHAR(50)  | Marker type (text, portal)            |
-| color              | VARCHAR(20)  | Marker color                          |
-| label              | VARCHAR(200) | Marker title                          |
-| description        | TEXT         | Optional description                  |
-| audio_path         | VARCHAR(255) | Path to attached audio file           |
-| target_panorama_id | INT          | Target panorama for portal markers    |
-| created_at         | TIMESTAMP    | Creation date                         |
-| updated_at         | TIMESTAMP    | Last update date                      |
+| Column             | Type         | Description                        |
+| ------------------ | ------------ | ---------------------------------- |
+| id                 | INT          | Primary key                        |
+| panorama_id        | INT          | Foreign key to panoramas           |
+| user_id            | INT          | Foreign key to users               |
+| yaw                | DOUBLE       | Horizontal position                |
+| pitch              | DOUBLE       | Vertical position                  |
+| type               | VARCHAR(50)  | Marker type (text, portal)         |
+| color              | VARCHAR(20)  | Marker color                       |
+| label              | VARCHAR(200) | Marker title                       |
+| description        | TEXT         | Optional description               |
+| audio_path         | VARCHAR(255) | Path to attached audio file        |
+| target_panorama_id | INT          | Target panorama for portal markers |
+| created_at         | TIMESTAMP    | Creation date                      |
+| updated_at         | TIMESTAMP    | Last update date                   |
 
 ## Security Features
 
