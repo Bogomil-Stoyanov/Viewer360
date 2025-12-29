@@ -208,4 +208,12 @@ docker exec -it viewer360_db mysql -u viewer360_user -p viewer360
 
 ## License
 
-MIT License
+This project is licensed under the **Viewer360 Educational License** - see the [LICENSE](LICENSE) file for details.
+
+**Key Points:**
+- ✅ Open source for learning and reference
+- ✅ Free to use for personal/commercial projects
+- ✅ Contributions welcome
+- ❌ **Prohibited for submission in the same academic course**
+
+This license protects academic integrity while encouraging open source collaboration.

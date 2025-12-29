@@ -1,0 +1,91 @@
+Viewer360 Educational License
+Copyright (c) 2025 Viewer360 Project Team
+
+==============================================================================
+ACADEMIC INTEGRITY CLAUSE
+==============================================================================
+
+This software is an original educational project developed for academic 
+purposes. While this project is made publicly available as open source 
+software, it is specifically PROHIBITED for any student or participant 
+enrolled in the same academic course, class, or educational program for which 
+this project was originally developed to:
+
+1. Copy, fork, or clone this repository for submission as their own work
+2. Use substantial portions of this code in their coursework submissions
+3. Replicate the architecture, features, or implementation details for 
+   academic credit in the same course
+4. Present this work, in whole or in part, as their own original creation
+
+Violations of this clause constitute academic dishonesty and may result in 
+disciplinary action according to the policies of the relevant educational 
+institution.
+
+==============================================================================
+GENERAL OPEN SOURCE PERMISSIONS
+==============================================================================
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), subject
+to the Academic Integrity Clause above, to deal in the Software without 
+restriction, including without limitation the rights to use, copy, modify, 
+merge, publish, distribute, sublicense, and/or sell copies of the Software, 
+and to permit persons to whom the Software is furnished to do so, subject to 
+the following conditions:
+
+PERMITTED USES:
+- Learning from the code for educational purposes
+- Using as reference material for understanding concepts
+- Contributing improvements via pull requests
+- Forking for personal/commercial projects outside the academic context
+- Teaching and demonstrating web development concepts
+- Building derivative works for different purposes
+
+ATTRIBUTION:
+The above copyright notice, this permission notice, and the Academic Integrity 
+Clause shall be included in all copies or substantial portions of the Software.
+
+==============================================================================
+DISCLAIMER
+==============================================================================
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+==============================================================================
+THIRD-PARTY COMPONENTS
+==============================================================================
+
+This project incorporates the following third-party libraries, each with 
+their own licenses:
+
+- Photo Sphere Viewer (https://github.com/mistic100/Photo-Sphere-Viewer)
+- Bootstrap 5 (https://getbootstrap.com/)
+- Bootstrap Icons (https://icons.getbootstrap.com/)
+
+Users of this software must comply with the licenses of these dependencies.
+
+==============================================================================
+CONTACT
+==============================================================================
+
+For questions regarding this license or to report violations of the Academic
+Integrity Clause, please open an issue in the project repository.
+
+==============================================================================
+INTERPRETATION
+==============================================================================
+
+"Same course" refers to any academic course, module, or educational program 
+that covers similar subject matter and requires similar project deliverables 
+as the context in which this project was originally created, regardless of 
+institution, semester, or year.
+
+This license is designed to promote learning while protecting academic 
+integrity. When in doubt about permitted use, please consult with your 
+instructor or academic advisor.
