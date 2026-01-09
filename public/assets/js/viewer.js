@@ -730,10 +730,7 @@ export function initViewer(config) {
           opt.classList.toggle("selected", opt.dataset.color === "blue");
         });
 
-      const modal = new bootstrap.Modal(
-        document.getElementById("addMarkerModal")
-      );
-      modal.show();
+      document.getElementById("addMarkerModal").classList.add("show");
     });
 
     // Color picker click handlers
@@ -803,9 +800,7 @@ export function initViewer(config) {
           targetPanoramaId
         );
         if (success) {
-          bootstrap.Modal.getInstance(
-            document.getElementById("addMarkerModal")
-          ).hide();
+          document.getElementById("addMarkerModal").classList.remove("show");
           audioInput.value = "";
         }
       });
@@ -867,10 +862,7 @@ export function initViewer(config) {
             );
           });
 
-        const modal = new bootstrap.Modal(
-          document.getElementById("editMarkerModal")
-        );
-        modal.show();
+        document.getElementById("editMarkerModal").classList.add("show");
       }
     });
 
@@ -917,9 +909,7 @@ export function initViewer(config) {
           targetPanoramaId
         );
         if (success) {
-          bootstrap.Modal.getInstance(
-            document.getElementById("editMarkerModal")
-          ).hide();
+          document.getElementById("editMarkerModal").classList.remove("show");
         }
       });
 
@@ -932,9 +922,7 @@ export function initViewer(config) {
         const id = parseInt(document.getElementById("editMarkerId").value);
         const success = await deleteMarker(id);
         if (success) {
-          bootstrap.Modal.getInstance(
-            document.getElementById("editMarkerModal")
-          ).hide();
+          document.getElementById("editMarkerModal").classList.remove("show");
         }
       });
 

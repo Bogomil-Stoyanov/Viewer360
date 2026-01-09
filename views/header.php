@@ -5,51 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle ?? 'Viewer360') ?></title>
     
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
+    <!-- Main CSS -->
+    <link href="/assets/css/main.css" rel="stylesheet">
+    <!-- Bootstrap Icons (icon font only) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-    
-    <style>
-        body {
-            background-color: #f8f9fa;
-            min-height: 100vh;
-        }
-        
-        .navbar-brand {
-            font-weight: 600;
-        }
-        
-        .card {
-            border-radius: 10px;
-        }
-        
-        .btn-primary {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
-        }
-        
-        .form-control:focus {
-            border-color: #86b7fe;
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-        }
-        
-        .nav-link {
-            white-space: nowrap;
-        }
-    </style>
 </head>
 <body>
     <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="/">
                 <i class="bi bi-globe2"></i> Viewer360
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" onclick="toggleNavbar()">
                 <span class="navbar-toggler-icon"></span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
+            <div class="navbar-collapse collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
                         <a class="nav-link <?= ($currentPage ?? '') === 'explore' ? 'active' : '' ?>" href="/explore.php">
@@ -72,12 +43,11 @@
                             </a>
                         </li>
                         <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" 
-                               data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" onclick="toggleDropdown(event)">
                                 <i class="bi bi-person-circle"></i> 
                                 <?= htmlspecialchars(\App\Controllers\AuthController::getCurrentUsername()) ?>
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                            <ul class="dropdown-menu dropdown-menu-end" id="userDropdown">
                                 <?php if (\App\Controllers\AuthController::isAdmin()): ?>
                                 <li>
                                     <a class="dropdown-item" href="/admin/dashboard.php">
@@ -109,3 +79,25 @@
             </div>
         </div>
     </nav>
+    
+    <script>
+    function toggleNavbar() {
+        const navbar = document.getElementById('navbarNav');
+        navbar.classList.toggle('show');
+    }
+    
+    function toggleDropdown(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const dropdown = document.getElementById('userDropdown');
+        dropdown.classList.toggle('show');
+    }
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        const dropdown = document.getElementById('userDropdown');
+        if (dropdown && !e.target.closest('.dropdown')) {
+            dropdown.classList.remove('show');
+        }
+    });
+    </script>

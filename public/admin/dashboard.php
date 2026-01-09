@@ -29,6 +29,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
             echo json_encode($adminController->forceDeletePanorama($panoramaId));
             exit;
             
+        case 'delete_marker':
+            $markerId = (int)($_POST['marker_id'] ?? 0);
+            echo json_encode($adminController->forceDeleteMarker($markerId));
+            exit;
+            
         case 'cleanup_orphans':
             echo json_encode($adminController->cleanupOrphanFiles());
             exit;
@@ -41,11 +46,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
 
 // Get data for display
 $stats = $adminController->getStats();
+$markerStats = $adminController->getMarkerStats();
 $users = $adminController->getAllUsers();
 
 // Filter panoramas by user if specified
 $filterUserId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : null;
 $panoramas = $adminController->getAllPanoramas($filterUserId);
+
+// Filter markers by panorama if specified
+$filterPanoramaId = isset($_GET['panorama_id']) ? (int)$_GET['panorama_id'] : null;
+$markers = $adminController->getAllMarkers($filterPanoramaId);
 
 $pageTitle = 'Admin Dashboard - Viewer360';
 $currentPage = 'admin';
@@ -57,8 +67,9 @@ $currentPage = 'admin';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= htmlspecialchars($pageTitle) ?></title>
     
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Main CSS -->
+    <link href="/assets/css/main.css" rel="stylesheet">
+    <!-- Bootstrap Icons (icon font only) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     
     <style>
@@ -107,6 +118,10 @@ $currentPage = 'admin';
         
         .stat-card.storage {
             background: #6f42c1;
+        }
+        
+        .stat-card.markers {
+            background: #0dcaf0;
         }
         
         .stat-card h2 {
@@ -230,19 +245,25 @@ $currentPage = 'admin';
                 
                 <!-- Stats Row -->
                 <div class="row mb-4">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="stat-card users">
                             <h2><?= number_format($stats['total_users']) ?></h2>
                             <p><i class="bi bi-people"></i> Total Users</p>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="stat-card panoramas">
                             <h2><?= number_format($stats['total_panoramas']) ?></h2>
                             <p><i class="bi bi-images"></i> Total Panoramas</p>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                        <div class="stat-card markers">
+                            <h2><?= number_format($markerStats['total_markers']) ?></h2>
+                            <p><i class="bi bi-pin-map"></i> Total Markers</p>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
                         <div class="stat-card storage">
                             <h2><?= $stats['storage_formatted'] ?></h2>
                             <p><i class="bi bi-hdd"></i> Storage Used</p>
@@ -253,17 +274,22 @@ $currentPage = 'admin';
                 <!-- Tabs -->
                 <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="users-tab" data-bs-toggle="tab" data-bs-target="#users" type="button">
+                        <button class="nav-link active" id="users-tab" data-tab-target="#users" type="button">
                             <i class="bi bi-people"></i> User Management
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="content-tab" data-bs-toggle="tab" data-bs-target="#content" type="button">
+                        <button class="nav-link" id="content-tab" data-tab-target="#content" type="button">
                             <i class="bi bi-images"></i> Content Moderation
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="storage-tab" data-bs-toggle="tab" data-bs-target="#storage" type="button">
+                        <button class="nav-link" id="markers-tab" data-tab-target="#markers" type="button">
+                            <i class="bi bi-pin-map"></i> Marker Moderation
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="storage-tab" data-tab-target="#storage" type="button">
                             <i class="bi bi-hdd"></i> Storage Cleanup
                         </button>
                     </li>
@@ -453,15 +479,138 @@ $currentPage = 'admin';
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Markers Tab -->
+                    <div class="tab-pane fade" id="markers" role="tabpanel">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-pin-map"></i> All Markers
+                                    <?php if ($filterPanoramaId): ?>
+                                        <span class="badge filter-badge ms-2">
+                                            Filtered by panorama #<?= $filterPanoramaId ?>
+                                            <a href="?#markers" class="text-white ms-1"><i class="bi bi-x"></i></a>
+                                        </span>
+                                    <?php endif; ?>
+                                </h5>
+                                <div>
+                                    <span class="badge bg-info me-2" title="Audio markers">
+                                        <i class="bi bi-volume-up"></i> <?= $markerStats['audio_markers'] ?>
+                                    </span>
+                                    <span class="badge bg-success me-2" title="Portal markers">
+                                        <i class="bi bi-box-arrow-up-right"></i> <?= $markerStats['portal_markers'] ?>
+                                    </span>
+                                    <span class="badge bg-secondary"><?= count($markers) ?> markers</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Color</th>
+                                                <th>Label</th>
+                                                <th>Type</th>
+                                                <th>Panorama</th>
+                                                <th>Creator</th>
+                                                <th>Created</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="markers-table">
+                                            <?php foreach ($markers as $marker): ?>
+                                            <tr id="marker-row-<?= $marker['id'] ?>">
+                                                <td><?= $marker['id'] ?></td>
+                                                <td>
+                                                    <span class="marker-color-dot" style="display: inline-block; width: 16px; height: 16px; border-radius: 50%; background: <?= htmlspecialchars(\App\Controllers\MarkerController::COLORS[$marker['color']] ?? '#0d6efd') ?>; border: 2px solid #fff; box-shadow: 0 0 3px rgba(0,0,0,0.3);"></span>
+                                                </td>
+                                                <td>
+                                                    <strong><?= htmlspecialchars($marker['label']) ?></strong>
+                                                    <?php if (!empty($marker['description'])): ?>
+                                                        <br><small class="text-muted"><?= htmlspecialchars(substr($marker['description'], 0, 50)) ?><?= strlen($marker['description']) > 50 ? '...' : '' ?></small>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <?php if ($marker['type'] === 'portal'): ?>
+                                                        <span class="badge bg-success"><i class="bi bi-box-arrow-up-right"></i> Portal</span>
+                                                    <?php elseif (!empty($marker['audio_path'])): ?>
+                                                        <span class="badge bg-info"><i class="bi bi-volume-up"></i> Audio</span>
+                                                    <?php else: ?>
+                                                        <span class="badge bg-secondary"><i class="bi bi-chat-text"></i> Text</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <a href="/view.php?id=<?= $marker['panorama_id'] ?>&marker=<?= $marker['id'] ?>" target="_blank" class="text-primary">
+                                                        <?= htmlspecialchars($marker['panorama_title']) ?>
+                                                        <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                                    </a>
+                                                    <br>
+                                                    <a href="?panorama_id=<?= $marker['panorama_id'] ?>#markers" class="small text-muted">
+                                                        Filter by panorama
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <a href="?user_id=<?= $marker['user_id'] ?>#users" class="text-decoration-none">
+                                                        <?= htmlspecialchars($marker['username']) ?>
+                                                    </a>
+                                                </td>
+                                                <td><?= date('M j, Y', strtotime($marker['created_at'])) ?></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-danger" onclick="deleteMarker(<?= $marker['id'] ?>, '<?= htmlspecialchars(addslashes($marker['label'])) ?>')">
+                                                        <i class="bi bi-trash"></i> Delete
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                            <?php if (empty($markers)): ?>
+                                            <tr>
+                                                <td colspan="8" class="text-center text-muted py-4">
+                                                    No markers found.
+                                                </td>
+                                            </tr>
+                                            <?php endif; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
+    <!-- Tab functionality script -->
     <script>
+        // Tab functionality (custom implementation)
+        function initTabs() {
+            const tabButtons = document.querySelectorAll('[data-tab-target]');
+            const tabPanes = document.querySelectorAll('.tab-pane');
+            
+            tabButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const target = this.getAttribute('data-tab-target');
+                    
+                    // Remove active from all buttons
+                    tabButtons.forEach(b => b.classList.remove('active'));
+                    // Add active to clicked button
+                    this.classList.add('active');
+                    
+                    // Hide all panes
+                    tabPanes.forEach(pane => {
+                        pane.classList.remove('show', 'active');
+                    });
+                    
+                    // Show target pane
+                    const targetPane = document.querySelector(target);
+                    if (targetPane) {
+                        targetPane.classList.add('show', 'active');
+                    }
+                });
+            });
+        }
+        
         // Toggle user ban
         async function toggleBan(userId) {
             if (!confirm('Are you sure you want to change this user\'s ban status?')) return;
@@ -532,6 +681,34 @@ $currentPage = 'admin';
             }
         }
         
+        // Delete marker
+        async function deleteMarker(markerId, label) {
+            if (!confirm(`Are you sure you want to permanently delete the marker "${label}"?`)) return;
+            
+            try {
+                const formData = new FormData();
+                formData.append('ajax_action', 'delete_marker');
+                formData.append('marker_id', markerId);
+                
+                const response = await fetch('/admin/dashboard.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById(`marker-row-${markerId}`).remove();
+                    alert(data.message + (data.audio_deleted ? ' (Audio file also removed)' : ''));
+                } else {
+                    alert(data.error || 'Failed to delete marker');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred');
+            }
+        }
+        
         // Run orphan cleanup
         async function runCleanup() {
             if (!confirm('This will scan the uploads folder and delete any files not in the database. Continue?')) return;
@@ -580,12 +757,13 @@ $currentPage = 'admin';
         
         // Handle hash navigation for tabs
         document.addEventListener('DOMContentLoaded', function() {
+            initTabs();
+            
             if (window.location.hash) {
                 const tabId = window.location.hash.substring(1);
-                const tabTrigger = document.querySelector(`button[data-bs-target="#${tabId}"]`);
+                const tabTrigger = document.querySelector(`button[data-tab-target="#${tabId}"]`);
                 if (tabTrigger) {
-                    const tab = new bootstrap.Tab(tabTrigger);
-                    tab.show();
+                    tabTrigger.click();
                 }
             }
         });

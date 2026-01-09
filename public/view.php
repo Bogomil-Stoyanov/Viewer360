@@ -68,8 +68,9 @@ $forkCount = $panoramaController->getForkCount($id);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $pageTitle ?></title>
     
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Main CSS -->
+    <link href="/assets/css/main.css" rel="stylesheet">
+    <!-- Bootstrap Icons (icon font only) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     
     <!-- Photo Sphere Viewer CSS -->
@@ -199,8 +200,39 @@ $forkCount = $panoramaController->getForkCount($id);
     <!-- Include Marker Modals -->
     <?php include __DIR__ . '/../views/viewer/modals.php'; ?>
     
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Modal JavaScript -->
+    <script>
+    // Modal functionality
+    function openModal(modalId) {
+        document.getElementById(modalId).classList.add('show');
+    }
+    
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('show');
+    }
+    
+    // Close modals on backdrop click
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('show');
+            }
+        });
+    });
+    
+    // Close modals on close button click
+    document.querySelectorAll('[data-dismiss="modal"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.closest('.modal').classList.remove('show');
+        });
+    });
+    
+    // Export for use in viewer.js
+    window.modalUtils = {
+        open: openModal,
+        close: closeModal
+    };
+    </script>
 
     <!-- Photo Sphere Viewer JS -->
     <script type="importmap">
