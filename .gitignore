@@ -1,6 +1,7 @@
-# Uploads directory (keep folder structure but ignore contents)
+# Uploads directory (keep folder structure but ignore user uploads)
 public/uploads/*
 !public/uploads/.gitkeep
+!public/uploads/sample_*.jpg
 !public/uploads/audio/
 public/uploads/audio/*
 !public/uploads/audio/.gitkeep
