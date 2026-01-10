@@ -81,14 +81,14 @@ include __DIR__ . '/../views/header.php';
                     <li><?= htmlspecialchars($error) ?></li>
                 <?php endforeach; ?>
             </ul>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" onclick="this.closest('.alert').style.display='none'"></button>
         </div>
     <?php endif; ?>
 
     <?php if (!empty($success)): ?>
         <div class="alert alert-success alert-dismissible fade show">
             <?= htmlspecialchars($success) ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <button type="button" class="btn-close" onclick="this.closest('.alert').style.display='none'"></button>
         </div>
     <?php endif; ?>
 
@@ -226,7 +226,7 @@ include __DIR__ . '/../views/header.php';
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Confirm Delete</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <p>Are you sure you want to delete "<span id="deleteTitle"></span>"?</p>
@@ -236,7 +236,7 @@ include __DIR__ . '/../views/header.php';
                 <form method="POST" action="/dashboard.php" id="deleteForm">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="panorama_id" id="deletePanoramaId">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-danger">Delete</button>
                 </form>
             </div>
@@ -250,7 +250,7 @@ include __DIR__ . '/../views/header.php';
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title"><i class="bi bi-pencil"></i> Edit Panorama</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-dismiss="modal"></button>
             </div>
             <form method="POST" action="/dashboard.php" id="editForm">
                 <div class="modal-body">
@@ -279,7 +279,7 @@ include __DIR__ . '/../views/header.php';
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-lg"></i> Save Changes
                     </button>
@@ -293,7 +293,7 @@ include __DIR__ . '/../views/header.php';
 function confirmDelete(id, title) {
     document.getElementById('deletePanoramaId').value = id;
     document.getElementById('deleteTitle').textContent = title;
-    new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    document.getElementById('deleteModal').classList.add('show');
 }
 
 function openEditModal(id, title, description, isPublic) {
@@ -301,8 +301,28 @@ function openEditModal(id, title, description, isPublic) {
     document.getElementById('editTitle').value = title;
     document.getElementById('editDescription').value = description;
     document.getElementById('editIsPublic').checked = isPublic;
-    new bootstrap.Modal(document.getElementById('editModal')).show();
+    document.getElementById('editModal').classList.add('show');
 }
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('show');
+}
+
+// Close modals on backdrop click
+document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.classList.remove('show');
+        }
+    });
+});
+
+// Close modals on close button click
+document.querySelectorAll('[data-dismiss="modal"]').forEach(btn => {
+    btn.addEventListener('click', function() {
+        this.closest('.modal').classList.remove('show');
+    });
+});
 
 // File size validation
 document.getElementById('panorama').addEventListener('change', function() {
@@ -311,6 +331,13 @@ document.getElementById('panorama').addEventListener('change', function() {
         alert('File size exceeds 50MB limit. Please choose a smaller file.');
         this.value = '';
     }
+});
+
+// Alert dismissal
+document.querySelectorAll('.alert .btn-close').forEach(btn => {
+    btn.addEventListener('click', function() {
+        this.closest('.alert').style.display = 'none';
+    });
 });
 </script>
 

@@ -29,7 +29,7 @@ A web-based platform for uploading, viewing, and sharing panoramic (equirectangu
 
 - PHP 8.2 (Native, no frameworks)
 - MySQL 8.0
-- Bootstrap 5
+- Custom CSS (with Bootstrap Icons)
 - Photo Sphere Viewer
 - Docker & Docker Compose
 
@@ -211,6 +211,7 @@ docker exec -it viewer360_db mysql -u viewer360_user -p viewer360
 This project is licensed under the **Viewer360 Educational License** - see the [LICENSE](LICENSE) file for details.
 
 **Key Points:**
+
 - ✅ Open source for learning and reference
 - ✅ Free to use for personal/commercial projects
 - ✅ Contributions welcome

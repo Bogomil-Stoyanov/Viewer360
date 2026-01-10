@@ -268,4 +268,88 @@ class AdminController
             return ['success' => false, 'error' => 'Failed to promote user.'];
         }
     }
+
+    /**
+     * Get all markers for admin moderation
+     */
+    public function getAllMarkers(?int $panoramaId = null): array
+    {
+        $sql = "SELECT m.id, m.panorama_id, m.user_id, m.yaw, m.pitch, m.type, m.color, 
+                       m.label, m.description, m.audio_path, m.target_panorama_id, m.created_at,
+                       u.username, p.title as panorama_title
+                FROM markers m
+                JOIN users u ON m.user_id = u.id
+                JOIN panoramas p ON m.panorama_id = p.id";
+        
+        $params = [];
+        
+        if ($panoramaId !== null) {
+            $sql .= " WHERE m.panorama_id = ?";
+            $params[] = $panoramaId;
+        }
+        
+        $sql .= " ORDER BY m.created_at DESC";
+
+        $stmt = Database::query($sql, $params);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * Force delete a marker (admin action)
+     */
+    public function forceDeleteMarker(int $markerId): array
+    {
+        // Get marker info
+        $stmt = Database::query("SELECT audio_path FROM markers WHERE id = ?", [$markerId]);
+        $marker = $stmt->fetch();
+
+        if (!$marker) {
+            return ['success' => false, 'error' => 'Marker not found.'];
+        }
+
+        try {
+            // Delete from database
+            Database::query("DELETE FROM markers WHERE id = ?", [$markerId]);
+
+            // Delete audio file if exists
+            $audioDeleted = false;
+            if (!empty($marker['audio_path'])) {
+                $fullPath = __DIR__ . '/../../public/' . $marker['audio_path'];
+                if (file_exists($fullPath)) {
+                    unlink($fullPath);
+                    $audioDeleted = true;
+                }
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Marker deleted successfully.',
+                'audio_deleted' => $audioDeleted
+            ];
+        } catch (\PDOException $e) {
+            error_log("Force delete marker error: " . $e->getMessage());
+            return ['success' => false, 'error' => 'Failed to delete marker.'];
+        }
+    }
+
+    /**
+     * Get marker statistics
+     */
+    public function getMarkerStats(): array
+    {
+        $stmt = Database::query("SELECT COUNT(*) as count FROM markers");
+        $totalMarkers = (int)$stmt->fetch()['count'];
+
+        $stmt = Database::query("SELECT COUNT(*) as count FROM markers WHERE audio_path IS NOT NULL AND audio_path != ''");
+        $audioMarkers = (int)$stmt->fetch()['count'];
+
+        $stmt = Database::query("SELECT COUNT(*) as count FROM markers WHERE type = 'portal'");
+        $portalMarkers = (int)$stmt->fetch()['count'];
+
+        return [
+            'total_markers' => $totalMarkers,
+            'audio_markers' => $audioMarkers,
+            'portal_markers' => $portalMarkers
+        ];
+    }
 }
