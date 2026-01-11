@@ -15,7 +15,6 @@ class AuthController
 
     public function register(string $username, string $email, string $password): array
     {
-        // Validate inputs
         $errors = [];
 
         if (empty($username) || strlen($username) < 3 || strlen($username) > 50) {
@@ -34,7 +33,6 @@ class AuthController
             return ['success' => false, 'errors' => $errors];
         }
 
-        // Check if username or email already exists
         $stmt = Database::query(
             "SELECT id FROM users WHERE username = ? OR email = ?",
             [$username, $email]
@@ -44,7 +42,6 @@ class AuthController
             return ['success' => false, 'errors' => ['Username or email already exists.']];
         }
 
-        // Hash password and insert user
         $passwordHash = password_hash($password, PASSWORD_DEFAULT);
 
         try {
@@ -77,12 +74,10 @@ class AuthController
             return ['success' => false, 'errors' => ['Invalid email or password.']];
         }
 
-        // Check if user is banned
         if ($user['is_banned']) {
             return ['success' => false, 'errors' => ['Your account has been suspended. Please contact support.']];
         }
 
-        // Set session variables
         $_SESSION['user_id'] = $user['id'];
         $_SESSION['username'] = $user['username'];
         $_SESSION['email'] = $user['email'];

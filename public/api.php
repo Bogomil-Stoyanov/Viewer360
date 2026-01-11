@@ -1,17 +1,4 @@
 <?php
-/**
- * API Router for handling AJAX requests
- * Endpoints:
- *   POST /api.php?action=marker/create
- *   GET  /api.php?action=marker/list&panorama_id=X
- *   POST /api.php?action=marker/update
- *   POST /api.php?action=marker/delete
- *   POST /api.php?action=panorama/fork
- *   GET  /api.php?action=panorama/user-list - Get user's panoramas for portal linking
- *   POST /api.php?action=vote/toggle
- *   GET  /api.php?action=vote/status&panorama_id=X
- *   GET  /api.php?action=panorama/export&panorama_id=X
- */
 
 require_once __DIR__ . '/autoload.php';
 
@@ -20,32 +7,25 @@ use App\Controllers\MarkerController;
 use App\Controllers\PanoramaController;
 use App\Controllers\VoteController;
 
-// Set JSON response header
 header('Content-Type: application/json');
 
-// Initialize controllers
 $markerController = new MarkerController();
 $panoramaController = new PanoramaController();
 $voteController = new VoteController();
 
-// Get action from query string
 $action = $_GET['action'] ?? '';
 
-// Parse JSON body for POST requests
 $inputData = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $rawInput = file_get_contents('php://input');
     if ($rawInput) {
         $inputData = json_decode($rawInput, true) ?? [];
     }
-    // Also merge with POST data for form submissions
     $inputData = array_merge($_POST, $inputData);
 }
 
 try {
     switch ($action) {
-        // ========== MARKER ENDPOINTS ==========
-        
         case 'marker/create':
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 http_response_code(405);
@@ -62,7 +42,6 @@ try {
             $color = trim($inputData['color'] ?? 'blue');
             $targetPanoramaId = !empty($inputData['target_panorama_id']) ? (int)$inputData['target_panorama_id'] : null;
             
-            // Get audio file if uploaded (supports multipart/form-data)
             $audioFile = isset($_FILES['audio_file']) && $_FILES['audio_file']['error'] !== UPLOAD_ERR_NO_FILE 
                          ? $_FILES['audio_file'] 
                          : null;
@@ -133,7 +112,6 @@ try {
             $removeAudio = filter_var($inputData['remove_audio'] ?? false, FILTER_VALIDATE_BOOLEAN);
             $targetPanoramaId = !empty($inputData['target_panorama_id']) ? (int)$inputData['target_panorama_id'] : null;
             
-            // Get audio file if uploaded (supports multipart/form-data)
             $audioFile = isset($_FILES['audio_file']) && $_FILES['audio_file']['error'] !== UPLOAD_ERR_NO_FILE 
                          ? $_FILES['audio_file'] 
                          : null;
@@ -163,8 +141,6 @@ try {
             echo json_encode($result);
             break;
             
-        // ========== PANORAMA ENDPOINTS ==========
-        
         case 'panorama/fork':
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 http_response_code(405);
@@ -196,7 +172,6 @@ try {
             break;
         
         case 'panorama/user-list':
-            // Get all panoramas owned by the current user (for portal linking dropdown)
             if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
                 http_response_code(405);
                 echo json_encode(['success' => false, 'error' => 'Method not allowed']);
@@ -219,8 +194,6 @@ try {
                 'panoramas' => $panoramas
             ]);
             break;
-        
-        // ========== VOTE ENDPOINTS ==========
         
         case 'vote/toggle':
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -310,7 +283,6 @@ try {
                 exit;
             }
             
-            // Get panorama
             $panorama = $panoramaController->getPanorama($panoramaId);
             
             if (!$panorama) {
@@ -319,20 +291,16 @@ try {
                 exit;
             }
             
-            // Only owner can export
             if ((int)$panorama['user_id'] !== $userId) {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'error' => 'You can only export your own panoramas']);
                 exit;
             }
             
-            // Get markers
             $markers = $markerController->getByPanorama($panoramaId);
             
-            // Get vote score
             $voteScore = $voteController->getVoteScore($panoramaId);
             
-            // Build export data
             $exportData = [
                 'exported_at' => date('c'),
                 'panorama' => [

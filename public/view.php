@@ -1,8 +1,4 @@
 <?php
-/**
- * Panorama Viewer Page
- * Displays a 360-degree panorama with markers, voting, and editing capabilities
- */
 
 require_once __DIR__ . '/autoload.php';
 
@@ -13,7 +9,6 @@ use App\Controllers\MarkerController;
 $panoramaController = new PanoramaController();
 $markerController = new MarkerController();
 
-// Get panorama ID and optional marker ID for deep linking
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $highlightMarkerId = isset($_GET['marker']) ? (int)$_GET['marker'] : null;
 
@@ -27,7 +22,6 @@ if ($id <= 0) {
     exit;
 }
 
-// Fetch panorama
 $panorama = $panoramaController->getPanorama($id);
 
 if (!$panorama) {
@@ -40,7 +34,6 @@ if (!$panorama) {
     exit;
 }
 
-// Check if user can view this panorama
 if (!$panoramaController->canView($panorama)) {
     header('HTTP/1.0 403 Forbidden');
     $error = 'You do not have permission to view this panorama.';
@@ -57,7 +50,6 @@ $isOwner = AuthController::getCurrentUserId() === (int)$panorama['user_id'];
 $isLoggedIn = AuthController::isLoggedIn();
 $currentUserId = AuthController::getCurrentUserId();
 
-// Get original panorama info if this is a fork
 $originalPanorama = $panoramaController->getOriginalPanorama($id);
 $forkCount = $panoramaController->getForkCount($id);
 ?>
@@ -197,12 +189,9 @@ $forkCount = $panoramaController->getForkCount($id);
     </div>
     <?php endif; ?>
     
-    <!-- Include Marker Modals -->
     <?php include __DIR__ . '/../views/viewer/modals.php'; ?>
     
-    <!-- Modal JavaScript -->
     <script>
-    // Modal functionality
     function openModal(modalId) {
         document.getElementById(modalId).classList.add('show');
     }
@@ -211,7 +200,6 @@ $forkCount = $panoramaController->getForkCount($id);
         document.getElementById(modalId).classList.remove('show');
     }
     
-    // Close modals on backdrop click
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', function(e) {
             if (e.target === this) {
@@ -220,14 +208,12 @@ $forkCount = $panoramaController->getForkCount($id);
         });
     });
     
-    // Close modals on close button click
     document.querySelectorAll('[data-dismiss="modal"]').forEach(btn => {
         btn.addEventListener('click', function() {
             this.closest('.modal').classList.remove('show');
         });
     });
     
-    // Export for use in viewer.js
     window.modalUtils = {
         open: openModal,
         close: closeModal
@@ -248,7 +234,6 @@ $forkCount = $panoramaController->getForkCount($id);
     <script type="module">
         import { initViewer } from '/assets/js/viewer.js';
         
-        // Initialize viewer with configuration from PHP
         window.viewerModule = initViewer({
             panoramaId: <?= $id ?>,
             panoramaPath: '<?= htmlspecialchars($panorama['file_path']) ?>',

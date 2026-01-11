@@ -1,20 +1,13 @@
 <?php
-/**
- * Admin Dashboard
- * Protected route - only accessible by admin users
- */
-
 require_once __DIR__ . '/../autoload.php';
 
 use App\Controllers\AuthController;
 use App\Controllers\AdminController;
 
-// Require admin access
 AuthController::requireAdmin();
 
 $adminController = new AdminController();
 
-// Handle AJAX actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
     header('Content-Type: application/json');
     
@@ -44,16 +37,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax_action'])) {
     }
 }
 
-// Get data for display
 $stats = $adminController->getStats();
 $markerStats = $adminController->getMarkerStats();
 $users = $adminController->getAllUsers();
 
-// Filter panoramas by user if specified
 $filterUserId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : null;
 $panoramas = $adminController->getAllPanoramas($filterUserId);
 
-// Filter markers by panorama if specified
 $filterPanoramaId = isset($_GET['panorama_id']) ? (int)$_GET['panorama_id'] : null;
 $markers = $adminController->getAllMarkers($filterPanoramaId);
 
@@ -583,7 +573,6 @@ $currentPage = 'admin';
 
     <!-- Tab functionality script -->
     <script>
-        // Tab functionality (custom implementation)
         function initTabs() {
             const tabButtons = document.querySelectorAll('[data-tab-target]');
             const tabPanes = document.querySelectorAll('.tab-pane');
@@ -592,17 +581,13 @@ $currentPage = 'admin';
                 btn.addEventListener('click', function() {
                     const target = this.getAttribute('data-tab-target');
                     
-                    // Remove active from all buttons
                     tabButtons.forEach(b => b.classList.remove('active'));
-                    // Add active to clicked button
                     this.classList.add('active');
                     
-                    // Hide all panes
                     tabPanes.forEach(pane => {
                         pane.classList.remove('show', 'active');
                     });
                     
-                    // Show target pane
                     const targetPane = document.querySelector(target);
                     if (targetPane) {
                         targetPane.classList.add('show', 'active');
@@ -611,7 +596,6 @@ $currentPage = 'admin';
             });
         }
         
-        // Toggle user ban
         async function toggleBan(userId) {
             if (!confirm('Are you sure you want to change this user\'s ban status?')) return;
             
@@ -653,7 +637,6 @@ $currentPage = 'admin';
             }
         }
         
-        // Delete panorama
         async function deletePanorama(panoramaId, title) {
             if (!confirm(`Are you sure you want to permanently delete "${title}"?\n\nThis will also delete the image file from the server.`)) return;
             
@@ -681,7 +664,6 @@ $currentPage = 'admin';
             }
         }
         
-        // Delete marker
         async function deleteMarker(markerId, label) {
             if (!confirm(`Are you sure you want to permanently delete the marker "${label}"?`)) return;
             
@@ -709,7 +691,6 @@ $currentPage = 'admin';
             }
         }
         
-        // Run orphan cleanup
         async function runCleanup() {
             if (!confirm('This will scan the uploads folder and delete any files not in the database. Continue?')) return;
             
@@ -755,7 +736,6 @@ $currentPage = 'admin';
             }
         }
         
-        // Handle hash navigation for tabs
         document.addEventListener('DOMContentLoaded', function() {
             initTabs();
             

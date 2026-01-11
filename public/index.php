@@ -6,7 +6,6 @@ use App\Controllers\AuthController;
 
 $auth = new AuthController();
 
-// Redirect to dashboard if already logged in
 if (AuthController::isLoggedIn()) {
     header('Location: /dashboard.php');
     exit;
@@ -15,7 +14,6 @@ if (AuthController::isLoggedIn()) {
 $pageTitle = 'Welcome - Viewer360';
 $currentPage = 'home';
 
-// Background images for the animated panorama effect
 $backgrounds = [
     '/backgrounds/1.jpg',
     '/backgrounds/2.jpg',

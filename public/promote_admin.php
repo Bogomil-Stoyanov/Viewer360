@@ -1,15 +1,5 @@
 <?php
-/**
- * Admin Promotion Script
- * Run this script to promote a specific user to admin role
- * 
- * Usage: php promote_admin.php [user_id]
- * Default: Promotes user with ID 1
- * 
- * WARNING: This script can only be run from the command line for security.
- */
 
-// Security: Only allow CLI execution
 if (php_sapi_name() !== 'cli') {
     http_response_code(403);
     die('Access denied. This script can only be run from the command line.');
@@ -28,14 +18,12 @@ echo "=================================\n\n";
 try {
     $db = Database::getInstance();
     
-    // First, check if role column exists
     $stmt = $db->query("SHOW COLUMNS FROM users LIKE 'role'");
     if ($stmt->rowCount() == 0) {
         echo "❌ Error: 'role' column does not exist. Please run migrate.php first.\n";
         exit(1);
     }
     
-    // Check if user exists
     $stmt = $db->prepare("SELECT id, username, email, role FROM users WHERE id = ?");
     $stmt->execute([$userId]);
     $user = $stmt->fetch(\PDO::FETCH_ASSOC);
@@ -56,7 +44,6 @@ try {
         exit(0);
     }
     
-    // Promote to admin
     $stmt = $db->prepare("UPDATE users SET role = 'admin' WHERE id = ?");
     $stmt->execute([$userId]);
     

@@ -6,7 +6,6 @@ use App\Controllers\AuthController;
 
 $auth = new AuthController();
 
-// Redirect to dashboard if already logged in
 if (AuthController::isLoggedIn()) {
     header('Location: /dashboard.php');
     exit;
@@ -21,7 +20,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? '';
     $confirmPassword = $_POST['confirm_password'] ?? '';
 
-    // Check password confirmation
     if ($password !== $confirmPassword) {
         $errors[] = "Passwords do not match.";
     } else {

@@ -5,7 +5,6 @@ require_once __DIR__ . '/autoload.php';
 use App\Controllers\AuthController;
 use App\Controllers\PanoramaController;
 
-// Require login
 AuthController::requireLogin();
 
 $panoramaController = new PanoramaController();
@@ -13,7 +12,6 @@ $panoramaController = new PanoramaController();
 $errors = [];
 $success = '';
 
-// Handle upload
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'upload') {
     $title = trim($_POST['title'] ?? '');
     $description = trim($_POST['description'] ?? '');
@@ -28,7 +26,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Handle delete
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete') {
     $id = (int)($_POST['panorama_id'] ?? 0);
     $result = $panoramaController->delete($id);
@@ -40,7 +37,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Handle update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update') {
     $id = (int)($_POST['panorama_id'] ?? 0);
     $title = trim($_POST['title'] ?? '');
@@ -56,7 +52,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     }
 }
 
-// Get user's panoramas
 $userId = AuthController::getCurrentUserId();
 $panoramas = $panoramaController->getUserPanoramas($userId);
 
@@ -308,7 +303,6 @@ function closeModal(modalId) {
     document.getElementById(modalId).classList.remove('show');
 }
 
-// Close modals on backdrop click
 document.querySelectorAll('.modal').forEach(modal => {
     modal.addEventListener('click', function(e) {
         if (e.target === this) {
@@ -317,14 +311,12 @@ document.querySelectorAll('.modal').forEach(modal => {
     });
 });
 
-// Close modals on close button click
 document.querySelectorAll('[data-dismiss="modal"]').forEach(btn => {
     btn.addEventListener('click', function() {
         this.closest('.modal').classList.remove('show');
     });
 });
 
-// File size validation
 document.getElementById('panorama').addEventListener('change', function() {
     const maxSize = 50 * 1024 * 1024; // 50MB
     if (this.files[0] && this.files[0].size > maxSize) {
@@ -333,7 +325,6 @@ document.getElementById('panorama').addEventListener('change', function() {
     }
 });
 
-// Alert dismissal
 document.querySelectorAll('.alert .btn-close').forEach(btn => {
     btn.addEventListener('click', function() {
         this.closest('.alert').style.display = 'none';

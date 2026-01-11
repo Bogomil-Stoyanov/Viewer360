@@ -1,12 +1,7 @@
 <?php
-/**
- * Explore Page - Public Gallery of Panoramas
- * Accessible without login
- */
 
 require_once __DIR__ . '/autoload.php';
 
-// Start session for auth checking
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -14,8 +9,6 @@ if (session_status() === PHP_SESSION_NONE) {
 use App\Controllers\AuthController;
 use App\Database;
 
-// Fetch all public panoramas sorted by newest first
-// Using subqueries to avoid cartesian product between votes and markers
 $stmt = Database::query(
     "SELECT p.id, p.file_path, p.title, p.description, p.created_at,
             u.username,

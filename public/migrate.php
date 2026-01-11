@@ -1,13 +1,5 @@
 <?php
-/**
- * Database Migration Script
- * 
- * Usage: php migrate.php
- * 
- * WARNING: This script can only be run from the command line for security.
- */
 
-// Security: Only allow CLI execution
 if (php_sapi_name() !== 'cli') {
     http_response_code(403);
     die('Access denied. This script can only be run from the command line.');
@@ -22,7 +14,6 @@ echo "Starting database migration...\n\n";
 try {
     $db = Database::getInstance();
     
-    // Check if original_panorama_id column exists
     $stmt = $db->query("SHOW COLUMNS FROM panoramas LIKE 'original_panorama_id'");
     if ($stmt->rowCount() == 0) {
         echo "Adding original_panorama_id column to panoramas table...\n";
@@ -34,7 +25,6 @@ try {
         echo "✓ original_panorama_id column already exists\n";
     }
     
-    // Check if markers table exists
     $stmt = $db->query("SHOW TABLES LIKE 'markers'");
     if ($stmt->rowCount() == 0) {
         echo "Creating markers table...\n";
@@ -62,7 +52,6 @@ try {
         echo "✓ markers table already exists\n";
     }
     
-    // Check if color column exists in markers table
     $stmt = $db->query("SHOW COLUMNS FROM markers LIKE 'color'");
     if ($stmt->rowCount() == 0) {
         echo "Adding color column to markers table...\n";
@@ -72,7 +61,6 @@ try {
         echo "✓ color column already exists\n";
     }
     
-    // Check if votes table exists
     $stmt = $db->query("SHOW TABLES LIKE 'votes'");
     if ($stmt->rowCount() == 0) {
         echo "Creating votes table...\n";
@@ -96,7 +84,6 @@ try {
         echo "✓ votes table already exists\n";
     }
     
-    // Check if role column exists in users table
     $stmt = $db->query("SHOW COLUMNS FROM users LIKE 'role'");
     if ($stmt->rowCount() == 0) {
         echo "Adding role column to users table...\n";
@@ -106,7 +93,6 @@ try {
         echo "✓ role column already exists\n";
     }
     
-    // Check if is_banned column exists in users table
     $stmt = $db->query("SHOW COLUMNS FROM users LIKE 'is_banned'");
     if ($stmt->rowCount() == 0) {
         echo "Adding is_banned column to users table...\n";
@@ -116,7 +102,6 @@ try {
         echo "✓ is_banned column already exists\n";
     }
     
-    // Check if audio_path column exists in markers table
     $stmt = $db->query("SHOW COLUMNS FROM markers LIKE 'audio_path'");
     if ($stmt->rowCount() == 0) {
         echo "Adding audio_path column to markers table...\n";
@@ -126,7 +111,6 @@ try {
         echo "✓ audio_path column already exists\n";
     }
     
-    // Check if target_panorama_id column exists in markers table (for portal markers)
     $stmt = $db->query("SHOW COLUMNS FROM markers LIKE 'target_panorama_id'");
     if ($stmt->rowCount() == 0) {
         echo "Adding target_panorama_id column to markers table...\n";

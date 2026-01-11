@@ -1,15 +1,6 @@
-/**
- * Viewer360 - Panorama Viewer JavaScript Module
- * Handles all viewer functionality including markers, audio, voting, etc.
- */
-
 import { Viewer } from "@photo-sphere-viewer/core";
 import { MarkersPlugin } from "@photo-sphere-viewer/markers-plugin";
 
-/**
- * Initialize the panorama viewer with all functionality
- * @param {Object} config - Configuration object
- */
 export function initViewer(config) {
   const {
     panoramaId,
@@ -22,14 +13,12 @@ export function initViewer(config) {
     currentUsername,
   } = config;
 
-  // State
   let editMode = false;
   let markersData = [];
   let currentAudio = null;
   let currentPlayingMarkerId = null;
   let userPanoramas = [];
 
-  // Color mapping
   const colorMap = {
     blue: "#0d6efd",
     red: "#dc3545",
@@ -42,7 +31,6 @@ export function initViewer(config) {
     white: "#ffffff",
   };
 
-  // Initialize viewer with markers plugin
   const viewer = new Viewer({
     container: document.querySelector("#viewer"),
     panorama: "/" + panoramaPath,
@@ -63,16 +51,12 @@ export function initViewer(config) {
 
   const markersPlugin = viewer.getPlugin(MarkersPlugin);
 
-  // ========== HELPER FUNCTIONS ==========
-
   function escapeHtml(text) {
     if (!text) return "";
     const div = document.createElement("div");
     div.textContent = text;
     return div.innerHTML;
   }
-
-  // ========== MARKER FUNCTIONS ==========
 
   function getMarkerGradient(color, isHighlighted = false) {
     if (isHighlighted) {
@@ -178,7 +162,6 @@ export function initViewer(config) {
     };
   }
 
-  // Copy marker deep link to clipboard
   function copyMarkerLink(markerId) {
     const url = `${window.location.origin}/view.php?id=${panoramaId}&marker=${markerId}`;
     navigator.clipboard
@@ -198,7 +181,6 @@ export function initViewer(config) {
       });
   }
 
-  // Load markers from API
   async function loadMarkers() {
     try {
       const response = await fetch(
@@ -215,7 +197,6 @@ export function initViewer(config) {
     }
   }
 
-  // Load user's panoramas for portal linking dropdown
   async function loadUserPanoramas() {
     if (!isOwner) return;
 
@@ -454,8 +435,6 @@ export function initViewer(config) {
     }
   }
 
-  // ========== DEEP LINKING ==========
-
   function animateToMarker(markerId) {
     const marker = markersData.find((m) => parseInt(m.id) === markerId);
     if (marker) {
@@ -471,8 +450,6 @@ export function initViewer(config) {
         });
     }
   }
-
-  // ========== FORK/SAVE TO COLLECTION ==========
 
   async function forkPanorama() {
     try {
@@ -495,8 +472,6 @@ export function initViewer(config) {
       alert("Failed to save to collection. Please try again.");
     }
   }
-
-  // ========== AUDIO PLAYBACK FUNCTIONS ==========
 
   function stopCurrentAudio() {
     if (currentAudio) {
@@ -551,8 +526,6 @@ export function initViewer(config) {
     });
   }
 
-  // ========== PORTAL NAVIGATION ==========
-
   function navigateToPortal(targetPanoramaId) {
     const overlay = document.createElement("div");
     overlay.className = "portal-transition-overlay";
@@ -578,8 +551,6 @@ export function initViewer(config) {
       window.location.href = `/view.php?id=${targetPanoramaId}`;
     }, 500);
   }
-
-  // ========== VOTING SYSTEM ==========
 
   let currentUserVote = 0;
   let currentScore = 0;
@@ -651,8 +622,6 @@ export function initViewer(config) {
     }
   }
 
-  // ========== EXPORT DATA ==========
-
   async function exportData() {
     try {
       const response = await fetch(
@@ -682,10 +651,7 @@ export function initViewer(config) {
     }
   }
 
-  // ========== EVENT HANDLERS SETUP ==========
-
   function setupEventHandlers() {
-    // Hide loading overlay and initialize when ready
     viewer.addEventListener("ready", () => {
       document.getElementById("loadingOverlay").classList.add("hidden");
 
@@ -698,7 +664,6 @@ export function initViewer(config) {
       });
     });
 
-    // Edit mode toggle
     const editModeToggle = document.getElementById("editModeToggle");
     const editModeIndicator = document.getElementById("editModeIndicator");
 
@@ -709,7 +674,6 @@ export function initViewer(config) {
       });
     }
 
-    // Click on sphere to add marker (when in edit mode)
     viewer.addEventListener("click", (e) => {
       if (!editMode || !isOwner) return;
 
@@ -733,7 +697,6 @@ export function initViewer(config) {
       document.getElementById("addMarkerModal").classList.add("show");
     });
 
-    // Color picker click handlers
     document
       .querySelectorAll("#addColorPicker .color-option")
       .forEach((option) => {
@@ -759,7 +722,6 @@ export function initViewer(config) {
         });
       });
 
-    // Save marker button
     document
       .getElementById("saveMarkerBtn")
       .addEventListener("click", async () => {
@@ -805,7 +767,6 @@ export function initViewer(config) {
         }
       });
 
-    // Click on marker to edit or play audio or navigate
     markersPlugin.addEventListener("select-marker", (e) => {
       const markerData = e.marker.config.data;
 
@@ -866,7 +827,6 @@ export function initViewer(config) {
       }
     });
 
-    // Update marker button
     document
       .getElementById("updateMarkerBtn")
       .addEventListener("click", async () => {
@@ -913,7 +873,6 @@ export function initViewer(config) {
         }
       });
 
-    // Delete marker button
     document
       .getElementById("deleteMarkerBtn")
       .addEventListener("click", async () => {
@@ -926,7 +885,6 @@ export function initViewer(config) {
         }
       });
 
-    // Save to collection button
     const saveToCollectionBtn = document.getElementById("saveToCollectionBtn");
     if (saveToCollectionBtn) {
       saveToCollectionBtn.addEventListener("click", () => {
@@ -940,7 +898,6 @@ export function initViewer(config) {
       });
     }
 
-    // Vote button handlers
     const upvoteBtn = document.getElementById("upvoteBtn");
     const downvoteBtn = document.getElementById("downvoteBtn");
 
@@ -951,7 +908,6 @@ export function initViewer(config) {
       downvoteBtn.addEventListener("click", () => castVote(-1));
     }
 
-    // Sidebar toggle
     const sidebarToggle = document.getElementById("sidebarToggle");
     const markerSidebar = document.getElementById("markerSidebar");
 
@@ -962,18 +918,15 @@ export function initViewer(config) {
       });
     }
 
-    // Export data button
     const exportDataBtn = document.getElementById("exportDataBtn");
     if (exportDataBtn) {
       exportDataBtn.addEventListener("click", exportData);
     }
 
-    // Load vote status on page load
     if (document.getElementById("votingPanel")) {
       loadVoteStatus();
     }
 
-    // Preview audio button
     const previewAudioBtn = document.getElementById("previewAudioBtn");
     if (previewAudioBtn) {
       let previewAudio = null;
@@ -998,7 +951,6 @@ export function initViewer(config) {
       });
     }
 
-    // Remove audio button
     const removeAudioBtn = document.getElementById("removeAudioBtn");
     if (removeAudioBtn) {
       removeAudioBtn.addEventListener("click", () => {
@@ -1009,7 +961,6 @@ export function initViewer(config) {
       });
     }
 
-    // Audio file input validation
     document
       .getElementById("markerAudio")
       ?.addEventListener("change", function () {
@@ -1029,10 +980,8 @@ export function initViewer(config) {
       });
   }
 
-  // Initialize event handlers
   setupEventHandlers();
 
-  // Expose methods to window for onclick handlers in HTML
   return {
     copyMarkerLink,
     navigateToMarker,

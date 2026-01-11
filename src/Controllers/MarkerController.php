@@ -7,10 +7,6 @@ use App\Database;
 
 class MarkerController
 {
-    /**
-     * Create a new marker for a panorama
-     */
-    // Available marker colors
     public const COLORS = [
         'blue' => '#0d6efd',
         'red' => '#dc3545',
@@ -31,17 +27,14 @@ class MarkerController
 
         $userId = AuthController::getCurrentUserId();
 
-        // Validate inputs
         if (empty($label) || strlen($label) > 200) {
             return ['success' => false, 'error' => 'Label is required and must be less than 200 characters.'];
         }
 
-        // Validate color
         if (!array_key_exists($color, self::COLORS)) {
             $color = 'blue';
         }
 
-        // Check if panorama exists and user can access it
         $panoramaController = new PanoramaController();
         $panorama = $panoramaController->getPanorama($panoramaId);
 
@@ -53,30 +46,24 @@ class MarkerController
             return ['success' => false, 'error' => 'You do not have access to this panorama.'];
         }
 
-        // Only allow marker creation on own panoramas or forked panoramas
         if ((int)$panorama['user_id'] !== $userId) {
             return ['success' => false, 'error' => 'You can only add markers to your own panoramas.'];
         }
 
-        // Validate target panorama if it's a portal marker
         if ($targetPanoramaId !== null) {
             $targetPanorama = $panoramaController->getPanorama($targetPanoramaId);
             if (!$targetPanorama) {
                 return ['success' => false, 'error' => 'Target panorama not found.'];
             }
-            // Target must be user's own panorama
             if ((int)$targetPanorama['user_id'] !== $userId) {
                 return ['success' => false, 'error' => 'You can only link to your own panoramas.'];
             }
-            // Can't link to itself
             if ($targetPanoramaId === $panoramaId) {
                 return ['success' => false, 'error' => 'Cannot link a panorama to itself.'];
             }
-            // Force type to 'portal' when linking
             $type = 'portal';
         }
 
-        // Handle audio file upload if provided
         $audioPath = null;
         if ($audioFile !== null && isset($audioFile['tmp_name']) && !empty($audioFile['tmp_name'])) {
             $audioResult = $this->handleAudioUpload($audioFile);
@@ -117,12 +104,8 @@ class MarkerController
         }
     }
 
-    /**
-     * Get all markers for a panorama
-     */
     public function getByPanorama(int $panoramaId): array
     {
-        // Check if panorama exists and user can access it
         $panoramaController = new PanoramaController();
         $panorama = $panoramaController->getPanorama($panoramaId);
 
@@ -146,9 +129,6 @@ class MarkerController
         return $stmt->fetchAll();
     }
 
-    /**
-     * Get a single marker by ID
-     */
     public function getMarker(int $id): ?array
     {
         $stmt = Database::query(
@@ -162,9 +142,6 @@ class MarkerController
         return $stmt->fetch() ?: null;
     }
 
-    /**
-     * Update a marker
-     */
     public function update(int $id, string $label, string $description = '', string $type = 'text', string $color = 'blue', ?array $audioFile = null, bool $removeAudio = false, ?int $targetPanoramaId = null): array
     {
         if (!AuthController::isLoggedIn()) {
@@ -177,56 +154,45 @@ class MarkerController
             return ['success' => false, 'error' => 'Marker not found.'];
         }
 
-        // Only allow owner to update
         $userId = AuthController::getCurrentUserId();
         if ((int)$marker['user_id'] !== $userId) {
             return ['success' => false, 'error' => 'You can only edit your own markers.'];
         }
 
-        // Validate inputs
         if (empty($label) || strlen($label) > 200) {
             return ['success' => false, 'error' => 'Label is required and must be less than 200 characters.'];
         }
 
-        // Validate color
         if (!array_key_exists($color, self::COLORS)) {
             $color = 'blue';
         }
 
-        // Validate target panorama if it's a portal marker
         $panoramaController = new PanoramaController();
         if ($targetPanoramaId !== null) {
             $targetPanorama = $panoramaController->getPanorama($targetPanoramaId);
             if (!$targetPanorama) {
                 return ['success' => false, 'error' => 'Target panorama not found.'];
             }
-            // Target must be user's own panorama
             if ((int)$targetPanorama['user_id'] !== $userId) {
                 return ['success' => false, 'error' => 'You can only link to your own panoramas.'];
             }
-            // Can't link to itself
             if ($targetPanoramaId === (int)$marker['panorama_id']) {
                 return ['success' => false, 'error' => 'Cannot link a panorama to itself.'];
             }
-            // Force type to 'portal' when linking
             $type = 'portal';
         }
 
-        // Handle audio: remove, replace, or keep existing
         $audioPath = $marker['audio_path'] ?? null;
         
         if ($removeAudio) {
-            // Delete existing audio file if present
             if ($audioPath) {
                 $this->deleteAudioFile($audioPath);
             }
             $audioPath = null;
         } elseif ($audioFile !== null && isset($audioFile['tmp_name']) && !empty($audioFile['tmp_name'])) {
-            // Delete old audio file if replacing
             if ($marker['audio_path']) {
                 $this->deleteAudioFile($marker['audio_path']);
             }
-            // Upload new audio
             $audioResult = $this->handleAudioUpload($audioFile);
             if (!$audioResult['success']) {
                 return $audioResult;
@@ -257,9 +223,6 @@ class MarkerController
         }
     }
 
-    /**
-     * Delete a marker
-     */
     public function delete(int $id): array
     {
         if (!AuthController::isLoggedIn()) {
@@ -272,14 +235,12 @@ class MarkerController
             return ['success' => false, 'error' => 'Marker not found.'];
         }
 
-        // Only allow owner to delete
         $userId = AuthController::getCurrentUserId();
         if ((int)$marker['user_id'] !== $userId) {
             return ['success' => false, 'error' => 'You can only delete your own markers.'];
         }
 
         try {
-            // Delete associated audio file if present
             if (!empty($marker['audio_path'])) {
                 $this->deleteAudioFile($marker['audio_path']);
             }
@@ -292,23 +253,17 @@ class MarkerController
         }
     }
 
-    /**
-     * Handle audio file upload
-     */
     private function handleAudioUpload(array $file): array
     {
-        // Check for upload errors
         if ($file['error'] !== UPLOAD_ERR_OK) {
             return ['success' => false, 'error' => $this->getUploadErrorMessage($file['error'])];
         }
 
-        // Validate file size (15MB max)
         $maxSize = Config::get('audio.max_size');
         if ($file['size'] > $maxSize) {
             return ['success' => false, 'error' => 'Audio file size exceeds the maximum limit of 15MB.'];
         }
 
-        // Validate MIME type
         $finfo = new \finfo(FILEINFO_MIME_TYPE);
         $mimeType = $finfo->file($file['tmp_name']);
         $allowedTypes = Config::get('audio.allowed_types');
@@ -317,7 +272,6 @@ class MarkerController
             return ['success' => false, 'error' => 'Only MP3, WAV, and OGG audio files are allowed.'];
         }
 
-        // Validate extension
         $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
         $allowedExtensions = Config::get('audio.allowed_extensions');
 
@@ -325,17 +279,14 @@ class MarkerController
             return ['success' => false, 'error' => 'Invalid audio file extension.'];
         }
 
-        // Generate unique filename
         $newFilename = md5(time() . $file['name'] . uniqid()) . '.' . $extension;
         $uploadDir = Config::get('audio.upload_dir');
         $destination = $uploadDir . $newFilename;
 
-        // Ensure upload directory exists
         if (!is_dir($uploadDir)) {
             mkdir($uploadDir, 0755, true);
         }
 
-        // Move uploaded file
         if (!move_uploaded_file($file['tmp_name'], $destination)) {
             return ['success' => false, 'error' => 'Failed to save the audio file.'];
         }
@@ -346,9 +297,6 @@ class MarkerController
         ];
     }
 
-    /**
-     * Delete an audio file from disk
-     */
     private function deleteAudioFile(string $audioPath): void
     {
         $fullPath = __DIR__ . '/../../public/' . $audioPath;
@@ -357,9 +305,6 @@ class MarkerController
         }
     }
 
-    /**
-     * Get human-readable upload error message
-     */
     private function getUploadErrorMessage(int $errorCode): string
     {
         return match ($errorCode) {
@@ -374,17 +319,9 @@ class MarkerController
         };
     }
 
-    /**
-     * Copy all markers from one panorama to another
-     * Keeps the original author (user_id) so attribution is preserved
-     * Note: Portal markers (target_panorama_id) are NOT copied as they reference 
-     * panoramas in the original user's collection
-     */
     public function copyMarkers(int $sourcePanoramaId, int $targetPanoramaId, int $newUserId): bool
     {
         try {
-            // Keep original user_id to preserve author attribution
-            // Exclude portal markers (target_panorama_id IS NOT NULL) as they link to original user's panoramas
             $markers = Database::query(
                 "SELECT user_id, yaw, pitch, type, color, label, description, audio_path 
                  FROM markers 
@@ -417,9 +354,6 @@ class MarkerController
         }
     }
 
-    /**
-     * Get available colors
-     */
     public static function getColors(): array
     {
         return self::COLORS;

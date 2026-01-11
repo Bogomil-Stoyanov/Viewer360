@@ -93,7 +93,6 @@
         dropdown.classList.toggle('show');
     }
     
-    // Close dropdown when clicking outside
     document.addEventListener('click', function(e) {
         const dropdown = document.getElementById('userDropdown');
         if (dropdown && !e.target.closest('.dropdown')) {

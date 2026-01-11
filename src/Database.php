@@ -36,7 +36,6 @@ class Database
         try {
             self::$instance = new PDO($dsn, $user, $pass, $options);
         } catch (PDOException $e) {
-            // Log error in production, show generic message
             error_log("Database connection failed: " . $e->getMessage());
             throw new PDOException("Database connection failed. Please try again later.");
         }

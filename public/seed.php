@@ -1,24 +1,13 @@
 <?php
-/**
- * Database Seed Script
- * Generates sample data for testing: users, admins, panoramas, markers, and votes
- * 
- * Usage:
- *   CLI:     php seed.php
- *   Docker:  docker exec -it viewer360_web php /var/www/html/public/seed.php
- *   Browser: http://localhost:8080/seed.php (only works if not already seeded)
- */
 
 require_once __DIR__ . '/autoload.php';
 
 use App\Database;
 use App\Config;
 
-// Prevent accidental re-seeding in production
 $isCliMode = php_sapi_name() === 'cli';
 
 if (!$isCliMode) {
-    // Check if already seeded (has users)
     $stmt = Database::query("SELECT COUNT(*) as count FROM users");
     $userCount = (int)$stmt->fetch()['count'];
     
@@ -34,7 +23,6 @@ if (!$isCliMode) {
     }
 }
 
-// Check for --force flag in CLI
 $forceMode = $isCliMode && in_array('--force', $argv ?? []);
 
 echo $isCliMode ? "\n" : '<pre>';
@@ -45,7 +33,6 @@ echo "===========================================\n\n";
 try {
     $pdo = Database::getInstance();
     
-    // If force mode, clear existing data
     if ($forceMode) {
         echo "🗑️  Force mode: Clearing existing data...\n";
         $pdo->exec("SET FOREIGN_KEY_CHECKS = 0");
@@ -57,13 +44,9 @@ try {
         echo "   ✓ Tables cleared\n\n";
     }
 
-    // ========================================
-    // SEED USERS
-    // ========================================
     echo "👤 Creating users...\n";
     
     $users = [
-        // Admins
         [
             'username' => 'admin',
             'email' => 'admin@viewer360.local',
@@ -78,7 +61,6 @@ try {
             'role' => 'admin',
             'is_banned' => false
         ],
-        // Regular users
         [
             'username' => 'john_doe',
             'email' => 'john@example.com',
@@ -137,13 +119,8 @@ try {
     }
     echo "   ✓ Created " . count($users) . " users\n\n";
 
-    // ========================================
-    // SEED PANORAMAS
-    // ========================================
     echo "🖼️  Creating panoramas...\n";
     
-    // Note: These use placeholder paths. In production, you'd upload real images.
-    // For testing, you can upload real panoramas and update the file_path values.
     $panoramas = [
         [
             'user' => 'john_doe',
@@ -245,15 +222,11 @@ try {
     }
     echo "   ✓ Created " . count($panoramas) . " panoramas\n\n";
 
-    // ========================================
-    // SEED MARKERS
-    // ========================================
     echo "📍 Creating markers...\n";
     
     $colors = ['blue', 'red', 'green', 'yellow', 'orange', 'purple', 'pink', 'cyan', 'white'];
     
     $markers = [
-        // Mountain Sunrise markers
         [
             'panorama' => 'Mountain Sunrise Vista',
             'user' => 'john_doe',
@@ -285,7 +258,6 @@ try {
             'description' => 'This trail leads to the summit - approximately 3 hours from here.'
         ],
         
-        // City Skyline markers
         [
             'panorama' => 'City Skyline at Night',
             'user' => 'john_doe',
@@ -307,7 +279,6 @@ try {
             'description' => 'The historic waterfront area with restaurants and nightlife.'
         ],
         
-        // Beach Paradise markers
         [
             'panorama' => 'Beach Paradise',
             'user' => 'jane_smith',
@@ -339,7 +310,6 @@ try {
             'description' => 'Sea turtles nest here between May and October. Please keep distance.'
         ],
         
-        // Ancient Temple markers
         [
             'panorama' => 'Ancient Temple Interior',
             'user' => 'jane_smith',
@@ -371,7 +341,6 @@ try {
             'description' => 'Through this door lies the meditation garden.'
         ],
         
-        // Forest Trail markers
         [
             'panorama' => 'Forest Trail in Autumn',
             'user' => 'photo_lover',
@@ -393,7 +362,6 @@ try {
             'description' => 'Various edible mushrooms grow here, but only pick if you\'re an expert!'
         ],
         
-        // Desert Dunes markers
         [
             'panorama' => 'Desert Dunes at Sunset',
             'user' => 'traveler42',
@@ -415,7 +383,6 @@ try {
             'description' => 'Traditional trading route used for centuries.'
         ],
         
-        // Northern Lights markers
         [
             'panorama' => 'Northern Lights Display',
             'user' => 'traveler42',
@@ -437,7 +404,6 @@ try {
             'description' => 'Rare overhead aurora pattern visible on strong display nights.'
         ],
         
-        // Office Tour - Portal markers linking the two office panoramas
         [
             'panorama' => 'Office Tour - Main Lobby',
             'user' => 'admin',
@@ -523,13 +489,9 @@ try {
     }
     echo "   ✓ Created $markerCount markers\n\n";
 
-    // ========================================
-    // SEED VOTES
-    // ========================================
     echo "👍 Creating votes...\n";
     
     $votes = [
-        // Users voting on public panoramas (can't vote on own)
         ['user' => 'jane_smith', 'panorama' => 'Mountain Sunrise Vista', 'value' => 1],
         ['user' => 'photo_lover', 'panorama' => 'Mountain Sunrise Vista', 'value' => 1],
         ['user' => 'traveler42', 'panorama' => 'Mountain Sunrise Vista', 'value' => 1],
@@ -546,7 +508,7 @@ try {
         ['user' => 'jane_smith', 'panorama' => 'Forest Trail in Autumn', 'value' => 1],
         
         ['user' => 'john_doe', 'panorama' => 'Desert Dunes at Sunset', 'value' => 1],
-        ['user' => 'jane_smith', 'panorama' => 'Desert Dunes at Sunset', 'value' => -1], // downvote
+        ['user' => 'jane_smith', 'panorama' => 'Desert Dunes at Sunset', 'value' => -1],
         ['user' => 'photo_lover', 'panorama' => 'Desert Dunes at Sunset', 'value' => 1],
         
         ['user' => 'john_doe', 'panorama' => 'Northern Lights Display', 'value' => 1],
@@ -576,9 +538,7 @@ try {
     }
     echo "   ✓ Created $voteCount votes\n\n";
 
-    // ========================================
-    // SUMMARY
-    // ========================================
+
     echo "===========================================\n";
     echo "  ✅ SEEDING COMPLETE!\n";
     echo "===========================================\n\n";

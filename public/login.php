@@ -6,7 +6,6 @@ use App\Controllers\AuthController;
 
 $auth = new AuthController();
 
-// Redirect to dashboard if already logged in
 if (AuthController::isLoggedIn()) {
     header('Location: /dashboard.php');
     exit;

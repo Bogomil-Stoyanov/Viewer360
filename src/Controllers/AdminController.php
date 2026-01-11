@@ -6,20 +6,14 @@ use App\Database;
 
 class AdminController
 {
-    /**
-     * Get overview statistics for the admin dashboard
-     */
     public function getStats(): array
     {
-        // Total users
         $stmt = Database::query("SELECT COUNT(*) as count FROM users");
         $totalUsers = (int)$stmt->fetch()['count'];
 
-        // Total panoramas
         $stmt = Database::query("SELECT COUNT(*) as count FROM panoramas");
         $totalPanoramas = (int)$stmt->fetch()['count'];
 
-        // Calculate storage used
         $storageUsed = $this->calculateStorageUsed();
 
         return [
@@ -30,9 +24,6 @@ class AdminController
         ];
     }
 
-    /**
-     * Calculate total storage used by uploads
-     */
     public function calculateStorageUsed(): int
     {
         $uploadDir = __DIR__ . '/../../public/uploads/';
@@ -53,9 +44,6 @@ class AdminController
         return $totalSize;
     }
 
-    /**
-     * Format bytes to human readable format
-     */
     public function formatBytes(int $bytes, int $precision = 2): string
     {
         $units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -67,9 +55,6 @@ class AdminController
         return round($bytes, $precision) . ' ' . $units[$pow];
     }
 
-    /**
-     * Get all users for admin management
-     */
     public function getAllUsers(): array
     {
         $stmt = Database::query(
@@ -84,9 +69,6 @@ class AdminController
         return $stmt->fetchAll();
     }
 
-    /**
-     * Get all panoramas for admin moderation
-     */
     public function getAllPanoramas(?int $userId = null): array
     {
         $sql = "SELECT p.id, p.file_path, p.title, p.is_public, p.created_at,
@@ -107,17 +89,12 @@ class AdminController
         return $stmt->fetchAll();
     }
 
-    /**
-     * Toggle user ban status
-     */
     public function toggleUserBan(int $userId): array
     {
-        // Can't ban yourself
         if ($userId === AuthController::getCurrentUserId()) {
             return ['success' => false, 'error' => 'You cannot ban yourself.'];
         }
 
-        // Get current status
         $stmt = Database::query("SELECT is_banned, role FROM users WHERE id = ?", [$userId]);
         $user = $stmt->fetch();
 
@@ -125,7 +102,6 @@ class AdminController
             return ['success' => false, 'error' => 'User not found.'];
         }
 
-        // Can't ban other admins
         if ($user['role'] === 'admin') {
             return ['success' => false, 'error' => 'You cannot ban an admin user.'];
         }
@@ -149,13 +125,8 @@ class AdminController
         }
     }
 
-    /**
-     * Force delete a panorama (admin action)
-     * This removes the database entry AND the physical file
-     */
     public function forceDeletePanorama(int $panoramaId): array
     {
-        // Get panorama info
         $stmt = Database::query("SELECT file_path FROM panoramas WHERE id = ?", [$panoramaId]);
         $panorama = $stmt->fetch();
 
@@ -165,7 +136,6 @@ class AdminController
 
         $filePath = $panorama['file_path'];
 
-        // Check if this file is used by other panoramas
         $stmt = Database::query(
             "SELECT COUNT(*) as count FROM panoramas WHERE file_path = ? AND id != ?",
             [$filePath, $panoramaId]
@@ -173,10 +143,8 @@ class AdminController
         $isSharedFile = (int)$stmt->fetch()['count'] > 0;
 
         try {
-            // Delete from database (this will cascade delete markers and votes)
             Database::query("DELETE FROM panoramas WHERE id = ?", [$panoramaId]);
 
-            // Only delete physical file if no other panoramas use it
             if (!$isSharedFile) {
                 $fullPath = __DIR__ . '/../../public/' . $filePath;
                 if (file_exists($fullPath)) {
@@ -195,9 +163,6 @@ class AdminController
         }
     }
 
-    /**
-     * Find and remove orphan files (files on disk not in database)
-     */
     public function cleanupOrphanFiles(): array
     {
         $uploadDir = __DIR__ . '/../../public/uploads/';
@@ -209,15 +174,12 @@ class AdminController
             return ['success' => false, 'error' => 'Upload directory not found.'];
         }
 
-        // Get all file paths from database
         $stmt = Database::query("SELECT DISTINCT file_path FROM panoramas");
         $dbFiles = [];
         while ($row = $stmt->fetch()) {
-            // Extract just the filename from the path
             $dbFiles[] = basename($row['file_path']);
         }
 
-        // Scan upload directory
         $files = scandir($uploadDir);
         foreach ($files as $file) {
             if ($file === '.' || $file === '..') continue;
@@ -225,7 +187,6 @@ class AdminController
             $fullPath = $uploadDir . $file;
             if (!is_file($fullPath)) continue;
 
-            // Check if file is in database
             if (!in_array($file, $dbFiles)) {
                 $fileSize = filesize($fullPath);
                 $orphanFiles[] = [
@@ -234,7 +195,6 @@ class AdminController
                     'size_formatted' => $this->formatBytes($fileSize)
                 ];
 
-                // Delete the orphan file
                 if (unlink($fullPath)) {
                     $deletedCount++;
                     $freedSpace += $fileSize;
@@ -251,9 +211,6 @@ class AdminController
         ];
     }
 
-    /**
-     * Promote a user to admin role
-     */
     public function promoteToAdmin(int $userId): array
     {
         try {
@@ -269,9 +226,6 @@ class AdminController
         }
     }
 
-    /**
-     * Get all markers for admin moderation
-     */
     public function getAllMarkers(?int $panoramaId = null): array
     {
         $sql = "SELECT m.id, m.panorama_id, m.user_id, m.yaw, m.pitch, m.type, m.color, 
@@ -294,12 +248,8 @@ class AdminController
         return $stmt->fetchAll();
     }
 
-    /**
-     * Force delete a marker (admin action)
-     */
     public function forceDeleteMarker(int $markerId): array
     {
-        // Get marker info
         $stmt = Database::query("SELECT audio_path FROM markers WHERE id = ?", [$markerId]);
         $marker = $stmt->fetch();
 
@@ -308,10 +258,8 @@ class AdminController
         }
 
         try {
-            // Delete from database
             Database::query("DELETE FROM markers WHERE id = ?", [$markerId]);
 
-            // Delete audio file if exists
             $audioDeleted = false;
             if (!empty($marker['audio_path'])) {
                 $fullPath = __DIR__ . '/../../public/' . $marker['audio_path'];
@@ -332,9 +280,6 @@ class AdminController
         }
     }
 
-    /**
-     * Get marker statistics
-     */
     public function getMarkerStats(): array
     {
         $stmt = Database::query("SELECT COUNT(*) as count FROM markers");
