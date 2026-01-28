@@ -5,6 +5,7 @@ require_once __DIR__ . '/autoload.php';
 use App\Controllers\AuthController;
 use App\Controllers\PanoramaController;
 use App\Controllers\MarkerController;
+use App\Config;
 
 $panoramaController = new PanoramaController();
 $markerController = new MarkerController();
@@ -17,7 +18,7 @@ if ($id <= 0) {
     $error = 'Panorama not found.';
     $pageTitle = 'Not Found - Viewer360';
     include __DIR__ . '/../views/header.php';
-    echo '<div class="container py-5 text-center"><h1>404</h1><p>' . htmlspecialchars($error) . '</p><a href="/" class="btn btn-primary">Go Home</a></div>';
+    echo '<div class="container py-5 text-center"><h1>404</h1><p>' . htmlspecialchars($error) . '</p><a href="' . Config::url() . '" class="btn btn-primary">Go Home</a></div>';
     include __DIR__ . '/../views/footer.php';
     exit;
 }
@@ -29,7 +30,7 @@ if (!$panorama) {
     $error = 'Panorama not found.';
     $pageTitle = 'Not Found - Viewer360';
     include __DIR__ . '/../views/header.php';
-    echo '<div class="container py-5 text-center"><h1>404</h1><p>' . htmlspecialchars($error) . '</p><a href="/" class="btn btn-primary">Go Home</a></div>';
+    echo '<div class="container py-5 text-center"><h1>404</h1><p>' . htmlspecialchars($error) . '</p><a href="' . Config::url() . '" class="btn btn-primary">Go Home</a></div>';
     include __DIR__ . '/../views/footer.php';
     exit;
 }
@@ -39,7 +40,7 @@ if (!$panoramaController->canView($panorama)) {
     $error = 'You do not have permission to view this panorama.';
     $pageTitle = 'Access Denied - Viewer360';
     include __DIR__ . '/../views/header.php';
-    echo '<div class="container py-5 text-center"><h1>403</h1><p>' . htmlspecialchars($error) . '</p><a href="/login.php" class="btn btn-primary">Login</a></div>';
+    echo '<div class="container py-5 text-center"><h1>403</h1><p>' . htmlspecialchars($error) . '</p><a href="' . Config::url('login.php') . '" class="btn btn-primary">Login</a></div>';
     include __DIR__ . '/../views/footer.php';
     exit;
 }
@@ -61,7 +62,7 @@ $forkCount = $panoramaController->getForkCount($id);
     <title><?= $pageTitle ?></title>
     
     <!-- Main CSS -->
-    <link href="/assets/css/main.css" rel="stylesheet">
+    <link href="<?= Config::url('assets/css/main.css') ?>" rel="stylesheet">
     <!-- Bootstrap Icons (icon font only) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     
@@ -70,7 +71,7 @@ $forkCount = $panoramaController->getForkCount($id);
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/markers-plugin/index.min.css">
     
     <!-- Viewer CSS -->
-    <link rel="stylesheet" href="/assets/css/viewer.css">
+    <link rel="stylesheet" href="<?= Config::url('assets/css/viewer.css') ?>">
 </head>
 <body>
     <!-- Loading Overlay -->
@@ -97,7 +98,7 @@ $forkCount = $panoramaController->getForkCount($id);
                 <?php if ($originalPanorama): ?>
                     <span class="ms-3 fork-badge">
                         <i class="bi bi-arrow-return-left"></i> Remixed from 
-                        <a href="/view.php?id=<?= $originalPanorama['id'] ?>"><?= htmlspecialchars($originalPanorama['title']) ?></a>
+                        <a href="<?= Config::url('view.php?id=' . $originalPanorama['id']) ?>"><?= htmlspecialchars($originalPanorama['title']) ?></a>
                     </span>
                 <?php endif; ?>
             </div>
@@ -126,11 +127,11 @@ $forkCount = $panoramaController->getForkCount($id);
             <?php endif; ?>
             
             <?php if ($isLoggedIn): ?>
-                <a href="/dashboard.php" class="btn btn-viewer btn-sm">
+                <a href="<?= Config::url('dashboard.php') ?>" class="btn btn-viewer btn-sm">
                     <i class="bi bi-arrow-left"></i> Dashboard
                 </a>
             <?php else: ?>
-                <a href="/" class="btn btn-viewer btn-sm">
+                <a href="<?= Config::url() ?>" class="btn btn-viewer btn-sm">
                     <i class="bi bi-house"></i> Home
                 </a>
             <?php endif; ?>
@@ -156,7 +157,7 @@ $forkCount = $panoramaController->getForkCount($id);
             <i class="bi bi-arrow-down-circle-fill"></i>
         </button>
         <?php if (!$isLoggedIn): ?>
-            <a href="/login.php" class="btn btn-sm btn-outline-light ms-2">Login to Vote</a>
+            <a href="<?= Config::url('login.php') ?>" class="btn btn-sm btn-outline-light ms-2">Login to Vote</a>
         <?php endif; ?>
     </div>
     <?php endif; ?>

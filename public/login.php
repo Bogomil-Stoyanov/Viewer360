@@ -3,11 +3,12 @@
 require_once __DIR__ . '/autoload.php';
 
 use App\Controllers\AuthController;
+use App\Config;
 
 $auth = new AuthController();
 
 if (AuthController::isLoggedIn()) {
-    header('Location: /dashboard.php');
+    header('Location: ' . Config::url('dashboard.php'));
     exit;
 }
 
@@ -21,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $result = $auth->login($email, $password);
 
     if ($result['success']) {
-        header('Location: /dashboard.php');
+        header('Location: ' . Config::url('dashboard.php'));
         exit;
     } else {
         $errors = $result['errors'];
@@ -60,7 +61,7 @@ include __DIR__ . '/../views/header.php';
                         </div>
                     <?php endif; ?>
 
-                    <form method="POST" action="/login.php">
+                    <form method="POST" action="<?= Config::url('login.php') ?>">
                         <div class="mb-3">
                             <label for="email" class="form-label">Email address</label>
                             <input type="email" class="form-control" id="email" name="email" 
@@ -80,7 +81,7 @@ include __DIR__ . '/../views/header.php';
                     <hr class="my-4">
 
                     <p class="text-center mb-0">
-                        Don't have an account? <a href="/register.php">Register here</a>
+                        Don't have an account? <a href="<?= Config::url('register.php') ?>">Register here</a>
                     </p>
                 </div>
             </div>

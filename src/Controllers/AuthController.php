@@ -120,7 +120,7 @@ class AuthController
     public static function requireLogin(): void
     {
         if (!self::isLoggedIn()) {
-            header('Location: /login.php');
+            header('Location: ' . \App\Config::url('login.php'));
             exit;
         }
     }
@@ -139,7 +139,7 @@ class AuthController
             header('HTTP/1.0 403 Forbidden');
             echo '<!DOCTYPE html><html><head><title>403 Forbidden</title></head><body>';
             echo '<h1>403 Forbidden</h1><p>You do not have permission to access this page.</p>';
-            echo '<p><a href="/">Go to Home</a></p></body></html>';
+            echo '<p><a href="' . \App\Config::url() . '">Go to Home</a></p></body></html>';
             exit;
         }
     }

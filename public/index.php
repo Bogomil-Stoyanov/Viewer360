@@ -3,11 +3,12 @@
 require_once __DIR__ . '/autoload.php';
 
 use App\Controllers\AuthController;
+use App\Config;
 
 $auth = new AuthController();
 
 if (AuthController::isLoggedIn()) {
-    header('Location: /dashboard.php');
+    header('Location: ' . Config::url('dashboard.php'));
     exit;
 }
 
@@ -15,10 +16,10 @@ $pageTitle = 'Welcome - Viewer360';
 $currentPage = 'home';
 
 $backgrounds = [
-    '/backgrounds/1.jpg',
-    '/backgrounds/2.jpg',
-    '/backgrounds/3.png',
-    '/backgrounds/4.jpg'
+    Config::url('backgrounds/1.jpg'),
+    Config::url('backgrounds/2.jpg'),
+    Config::url('backgrounds/3.png'),
+    Config::url('backgrounds/4.jpg')
 ];
 $randomBg = $backgrounds[array_rand($backgrounds)];
 
@@ -109,13 +110,13 @@ include __DIR__ . '/../views/header.php';
                 Upload, view, and share your panoramic images in stunning 360-degree interactive views.
             </p>
             <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
-                <a href="/explore.php" class="btn btn-primary btn-lg px-4 gap-3">
+                <a href="<?= Config::url('explore.php') ?>" class="btn btn-primary btn-lg px-4 gap-3">
                     <i class="bi bi-compass"></i> Explore Gallery
                 </a>
-                <a href="/login.php" class="btn btn-outline-light btn-lg px-4 gap-3">
+                <a href="<?= Config::url('login.php') ?>" class="btn btn-outline-light btn-lg px-4 gap-3">
                     <i class="bi bi-box-arrow-in-right"></i> Login
                 </a>
-                <a href="/register.php" class="btn btn-outline-light btn-lg px-4">
+                <a href="<?= Config::url('register.php') ?>" class="btn btn-outline-light btn-lg px-4">
                     <i class="bi bi-person-plus"></i> Register
                 </a>
             </div>

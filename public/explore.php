@@ -8,6 +8,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 use App\Controllers\AuthController;
 use App\Database;
+use App\Config;
 
 $stmt = Database::query(
     "SELECT p.id, p.file_path, p.title, p.description, p.created_at,
@@ -143,11 +144,11 @@ include __DIR__ . '/../views/header.php';
             <h3>No panoramas yet</h3>
             <p class="text-muted">Be the first to share a 360° panorama!</p>
             <?php if (!AuthController::isLoggedIn()): ?>
-                <a href="/register.php" class="btn btn-primary mt-3">
+                <a href="<?= Config::url('register.php') ?>" class="btn btn-primary mt-3">
                     <i class="bi bi-person-plus"></i> Create Account
                 </a>
             <?php else: ?>
-                <a href="/dashboard.php" class="btn btn-primary mt-3">
+                <a href="<?= Config::url('dashboard.php') ?>" class="btn btn-primary mt-3">
                     <i class="bi bi-upload"></i> Upload Panorama
                 </a>
             <?php endif; ?>
@@ -156,11 +157,11 @@ include __DIR__ . '/../views/header.php';
         <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
             <?php foreach ($panoramas as $panorama): ?>
                 <div class="col">
-                    <a href="/view.php?id=<?= $panorama['id'] ?>" class="text-decoration-none">
+                    <a href="<?= Config::url('view.php?id=' . $panorama['id']) ?>" class="text-decoration-none">
                         <div class="card panorama-card h-100">
                             <div class="panorama-thumbnail">
                                 <i class="bi bi-badge-vr icon-360"></i>
-                                <img src="/<?= htmlspecialchars($panorama['file_path']) ?>" 
+                                <img src="<?= Config::url(htmlspecialchars($panorama['file_path'])) ?>" 
                                      alt="<?= htmlspecialchars($panorama['title']) ?>"
                                      loading="lazy">
                                 <div class="overlay"></div>

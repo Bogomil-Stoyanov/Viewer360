@@ -3,6 +3,7 @@ require_once __DIR__ . '/../autoload.php';
 
 use App\Controllers\AuthController;
 use App\Controllers\AdminController;
+use App\Config;
 
 AuthController::requireAdmin();
 
@@ -58,7 +59,7 @@ $currentPage = 'admin';
     <title><?= htmlspecialchars($pageTitle) ?></title>
     
     <!-- Main CSS -->
-    <link href="/assets/css/main.css" rel="stylesheet">
+    <link href="<?= Config::url('assets/css/main.css') ?>" rel="stylesheet">
     <!-- Bootstrap Icons (icon font only) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     
@@ -217,13 +218,13 @@ $currentPage = 'admin';
                     <i class="bi bi-shield-lock"></i> Admin
                 </h4>
                 <nav class="nav flex-column">
-                    <a class="nav-link active" href="/admin/dashboard.php">
+                    <a class="nav-link active" href="<?= Config::url('admin/dashboard.php') ?>">
                         <i class="bi bi-speedometer2"></i> Dashboard
                     </a>
-                    <a class="nav-link" href="/dashboard.php">
+                    <a class="nav-link" href="<?= Config::url('dashboard.php') ?>">
                         <i class="bi bi-arrow-left"></i> Back to Site
                     </a>
-                    <a class="nav-link" href="/logout.php">
+                    <a class="nav-link" href="<?= Config::url('logout.php') ?>">
                         <i class="bi bi-box-arrow-right"></i> Logout
                     </a>
                 </nav>
@@ -393,12 +394,12 @@ $currentPage = 'admin';
                                             <tr id="panorama-row-<?= $panorama['id'] ?>">
                                                 <td><?= $panorama['id'] ?></td>
                                                 <td>
-                                                    <img src="/<?= htmlspecialchars($panorama['file_path']) ?>" 
+                                                    <img src="<?= Config::url(htmlspecialchars($panorama['file_path'])) ?>" 
                                                          class="thumbnail-small" 
                                                          alt="<?= htmlspecialchars($panorama['title']) ?>">
                                                 </td>
                                                 <td>
-                                                    <a href="/view.php?id=<?= $panorama['id'] ?>" target="_blank" class="text-primary">
+                                                    <a href="<?= Config::url('view.php?id=' . $panorama['id']) ?>" target="_blank" class="text-primary">
                                                         <?= htmlspecialchars($panorama['title']) ?>
                                                         <i class="bi bi-box-arrow-up-right ms-1"></i>
                                                     </a>
@@ -531,7 +532,7 @@ $currentPage = 'admin';
                                                     <?php endif; ?>
                                                 </td>
                                                 <td>
-                                                    <a href="/view.php?id=<?= $marker['panorama_id'] ?>&marker=<?= $marker['id'] ?>" target="_blank" class="text-primary">
+                                                    <a href="<?= Config::url('view.php?id=' . $marker['panorama_id'] . '&marker=' . $marker['id']) ?>" target="_blank" class="text-primary">
                                                         <?= htmlspecialchars($marker['panorama_title']) ?>
                                                         <i class="bi bi-box-arrow-up-right ms-1"></i>
                                                     </a>

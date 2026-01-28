@@ -6,7 +6,7 @@
     <title><?= htmlspecialchars($pageTitle ?? 'Viewer360') ?></title>
     
     <!-- Main CSS -->
-    <link href="/assets/css/main.css" rel="stylesheet">
+    <link href="<?= \App\Config::url('assets/css/main.css') ?>" rel="stylesheet">
     <!-- Bootstrap Icons (icon font only) -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
 </head>
@@ -14,7 +14,7 @@
     <!-- Navigation -->
     <nav class="navbar navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="/">
+            <a class="navbar-brand" href="<?= \App\Config::url() ?>">
                 <i class="bi bi-globe2"></i> Viewer360
             </a>
             <button class="navbar-toggler" type="button" onclick="toggleNavbar()">
@@ -23,7 +23,7 @@
             <div class="navbar-collapse collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link <?= ($currentPage ?? '') === 'explore' ? 'active' : '' ?>" href="/explore.php">
+                        <a class="nav-link <?= ($currentPage ?? '') === 'explore' ? 'active' : '' ?>" href="<?= \App\Config::url('explore.php') ?>">
                             <i class="bi bi-compass"></i><span class="ms-1">Explore</span>
                         </a>
                     </li>
@@ -32,13 +32,13 @@
                     <?php if (\App\Controllers\AuthController::isLoggedIn()): ?>
                         <?php if (\App\Controllers\AuthController::isAdmin()): ?>
                         <li class="nav-item">
-                            <a class="nav-link <?= ($currentPage ?? '') === 'admin' ? 'active' : '' ?>" href="/admin/dashboard.php">
+                            <a class="nav-link <?= ($currentPage ?? '') === 'admin' ? 'active' : '' ?>" href="<?= \App\Config::url('admin/dashboard.php') ?>">
                                 <i class="bi bi-shield-lock"></i> Admin
                             </a>
                         </li>
                         <?php endif; ?>
                         <li class="nav-item">
-                            <a class="nav-link <?= ($currentPage ?? '') === 'dashboard' ? 'active' : '' ?>" href="/dashboard.php">
+                            <a class="nav-link <?= ($currentPage ?? '') === 'dashboard' ? 'active' : '' ?>" href="<?= \App\Config::url('dashboard.php') ?>">
                                 <i class="bi bi-speedometer2"></i> Dashboard
                             </a>
                         </li>
@@ -50,14 +50,14 @@
                             <ul class="dropdown-menu dropdown-menu-end" id="userDropdown">
                                 <?php if (\App\Controllers\AuthController::isAdmin()): ?>
                                 <li>
-                                    <a class="dropdown-item" href="/admin/dashboard.php">
+                                    <a class="dropdown-item" href="<?= \App\Config::url('admin/dashboard.php') ?>">
                                         <i class="bi bi-shield-lock"></i> Admin Panel
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <?php endif; ?>
                                 <li>
-                                    <a class="dropdown-item" href="/logout.php">
+                                    <a class="dropdown-item" href="<?= \App\Config::url('logout.php') ?>">
                                         <i class="bi bi-box-arrow-right"></i> Logout
                                     </a>
                                 </li>
@@ -65,12 +65,12 @@
                         </li>
                     <?php else: ?>
                         <li class="nav-item">
-                            <a class="nav-link <?= ($currentPage ?? '') === 'login' ? 'active' : '' ?>" href="/login.php">
+                            <a class="nav-link <?= ($currentPage ?? '') === 'login' ? 'active' : '' ?>" href="<?= \App\Config::url('login.php') ?>">
                                 <i class="bi bi-box-arrow-in-right"></i> Login
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link <?= ($currentPage ?? '') === 'register' ? 'active' : '' ?>" href="/register.php">
+                            <a class="nav-link <?= ($currentPage ?? '') === 'register' ? 'active' : '' ?>" href="<?= \App\Config::url('register.php') ?>">
                                 <i class="bi bi-person-plus"></i> Register
                             </a>
                         </li>

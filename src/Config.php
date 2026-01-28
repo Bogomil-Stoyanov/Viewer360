@@ -30,9 +30,32 @@ class Config
             ],
             'app' => [
                 'name' => 'Viewer360',
-                'base_url' => '/'
+                'base_url' => self::getBaseUrl()
             ]
         ];
+    }
+
+    private static function getBaseUrl(): string
+    {
+        // Check if BASE_URL is set in environment
+        $baseUrl = getenv('BASE_URL');
+        if ($baseUrl !== false) {
+            return rtrim($baseUrl, '/');
+        }
+
+        // Auto-detect base URL based on script location
+        $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+        $basePath = dirname($scriptName);
+        
+        // If running from public directory, remove 'public' from path
+        if (basename($basePath) === 'public') {
+            $basePath = dirname($basePath);
+        }
+        
+        // Ensure it starts with / and doesn't end with /
+        $basePath = '/' . trim($basePath, '/');
+        
+        return $basePath === '/' ? '' : $basePath . '/public';
     }
 
     public static function get(string $key, mixed $default = null): mixed
@@ -52,5 +75,12 @@ class Config
         }
 
         return $value;
+    }
+    
+    public static function url(string $path = ''): string
+    {
+        $baseUrl = self::get('app.base_url', '');
+        $path = ltrim($path, '/');
+        return $baseUrl . ($path ? '/' . $path : '');
     }
 }

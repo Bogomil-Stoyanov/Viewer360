@@ -4,6 +4,7 @@ require_once __DIR__ . '/autoload.php';
 
 use App\Controllers\AuthController;
 use App\Controllers\PanoramaController;
+use App\Config;
 
 AuthController::requireLogin();
 
@@ -93,7 +94,7 @@ include __DIR__ . '/../views/header.php';
             <h5 class="mb-0"><i class="bi bi-cloud-upload"></i> Upload New Panorama</h5>
         </div>
         <div class="card-body">
-            <form method="POST" action="/dashboard.php" enctype="multipart/form-data" id="uploadForm">
+            <form method="POST" action="<?= Config::url('dashboard.php') ?>" enctype="multipart/form-data" id="uploadForm">
                 <input type="hidden" name="action" value="upload">
                 
                 <div class="row">
@@ -192,7 +193,7 @@ include __DIR__ . '/../views/header.php';
                                 </div>
                                 <div class="card-footer bg-transparent">
                                     <div class="btn-group w-100">
-                                        <a href="/view.php?id=<?= $panorama['id'] ?>" 
+                                        <a href="<?= Config::url('view.php?id=' . $panorama['id']) ?>" 
                                            class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-eye"></i> View
                                         </a>
@@ -228,7 +229,7 @@ include __DIR__ . '/../views/header.php';
                 <p class="text-danger small">This action cannot be undone.</p>
             </div>
             <div class="modal-footer">
-                <form method="POST" action="/dashboard.php" id="deleteForm">
+                <form method="POST" action="<?= Config::url('dashboard.php') ?>" id="deleteForm">
                     <input type="hidden" name="action" value="delete">
                     <input type="hidden" name="panorama_id" id="deletePanoramaId">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
@@ -247,7 +248,7 @@ include __DIR__ . '/../views/header.php';
                 <h5 class="modal-title"><i class="bi bi-pencil"></i> Edit Panorama</h5>
                 <button type="button" class="btn-close" data-dismiss="modal"></button>
             </div>
-            <form method="POST" action="/dashboard.php" id="editForm">
+            <form method="POST" action="<?= Config::url('dashboard.php') ?>" id="editForm">
                 <div class="modal-body">
                     <input type="hidden" name="action" value="update">
                     <input type="hidden" name="panorama_id" id="editPanoramaId">
