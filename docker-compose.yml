@@ -9,9 +9,7 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./public:/var/www/html/public
-      - ./src:/var/www/html/src
-      - ./views:/var/www/html/views
+      - uploads_data:/var/www/html/public/uploads
     depends_on:
       - db
     environment:
@@ -56,6 +54,7 @@ services:
 
 volumes:
   db_data:
+  uploads_data:
 
 networks:
   viewer360_network:

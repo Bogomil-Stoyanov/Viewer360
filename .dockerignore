@@ -1,0 +1,31 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+XAMPP_SETUP.md
+CHANGES_FOR_XAMPP.md
+LICENSE
+readme-img/
+
+# Development files
+*.md
+.DS_Store
+Thumbs.db
+
+# Docker files (we don't need to copy these into the image)
+docker-compose.yml
+docker-compose*.yml
+
+# Test files
+public/test_setup.php
+
+# Shell scripts (except entrypoint which we need)
+download_samples.sh
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo

@@ -27,11 +27,24 @@ ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-# Set permissions for uploads directory
-RUN mkdir -p /var/www/html/public/uploads && \
-    chown -R www-data:www-data /var/www/html && \
-    chmod -R 755 /var/www/html
-
 WORKDIR /var/www/html
 
+COPY public/ /var/www/html/public/
+COPY src/ /var/www/html/src/
+COPY views/ /var/www/html/views/
+
+RUN mkdir -p /var/www/html/sample-uploads \
+    && cp -r /var/www/html/public/uploads/* /var/www/html/sample-uploads/ 2>/dev/null || true
+
+RUN mkdir -p /var/www/html/public/uploads/audio \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html \
+    && chmod -R 775 /var/www/html/public/uploads
+
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 EXPOSE 80
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["apache2-foreground"]
