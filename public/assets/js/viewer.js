@@ -70,38 +70,48 @@ export function initViewer(config) {
     const markerColor = marker.color || "blue";
     const hasAudio = marker.audio_path && marker.audio_path.length > 0;
     const isPortal = marker.target_panorama_id && marker.target_panorama_id > 0;
+    const isUrl = marker.url && marker.url.length > 0;
     const audioIndicator = hasAudio ? '<i class="bi bi-volume-up"></i> ' : "";
     const portalIndicator = isPortal
       ? '<i class="bi bi-box-arrow-up-right"></i> '
       : "";
+    const urlIndicator = isUrl ? '<i class="bi bi-link-45deg"></i> ' : "";
 
     let portalInfo = "";
     if (isPortal) {
       const targetPano = userPanoramas.find(
-        (p) => parseInt(p.id) === parseInt(marker.target_panorama_id)
+        (p) => parseInt(p.id) === parseInt(marker.target_panorama_id),
       );
       if (targetPano) {
         portalInfo = `<p class="text-success small mb-1"><i class="bi bi-signpost-2"></i> Leads to: ${escapeHtml(
-          targetPano.title
+          targetPano.title,
         )}</p>`;
       } else {
         portalInfo = `<p class="text-success small mb-1"><i class="bi bi-signpost-2"></i> Portal to another scene</p>`;
       }
     }
 
+    let urlInfo = "";
+    if (isUrl) {
+      urlInfo = `<p class="text-primary small mb-1"><i class="bi bi-link-45deg"></i> Links to: ${escapeHtml(
+        marker.url,
+      )}</p>`;
+    }
+
     const tooltipContent = `
             <div class="marker-tooltip">
-                <h6>${portalIndicator}${audioIndicator}${escapeHtml(
-      marker.label
-    )}</h6>
+                <h6>${portalIndicator}${urlIndicator}${audioIndicator}${escapeHtml(
+                  marker.label,
+                )}</h6>
                 ${
                   marker.description
                     ? `<p>${escapeHtml(marker.description)}</p>`
                     : ""
                 }
                 ${portalInfo}
+                ${urlInfo}
                 ${
-                  hasAudio && !isPortal
+                  hasAudio && !isPortal && !isUrl
                     ? '<p class="text-info small mb-1"><i class="bi bi-music-note"></i> Click marker to play/pause audio</p>'
                     : ""
                 }
@@ -110,9 +120,14 @@ export function initViewer(config) {
                     ? '<p class="text-warning small mb-1"><i class="bi bi-arrow-right-circle"></i> Click marker to navigate</p>'
                     : ""
                 }
+                ${
+                  isUrl
+                    ? '<p class="text-warning small mb-1"><i class="bi bi-box-arrow-up-right"></i> Click marker to open link</p>'
+                    : ""
+                }
                 <div class="marker-meta">
                     <i class="bi bi-person"></i> ${escapeHtml(
-                      marker.username || "Unknown"
+                      marker.username || "Unknown",
                     )}
                     <button class="btn btn-sm btn-outline-light ms-2 copy-link-btn" 
                             onclick="window.viewerModule.copyMarkerLink(${
@@ -129,11 +144,15 @@ export function initViewer(config) {
     const borderColor = markerColor === "white" ? "#ccc" : "white";
     const audioClass = hasAudio ? "has-audio" : "";
     const portalClass = isPortal ? "is-portal" : "";
+    const urlClass = isUrl ? "is-url" : "";
     const audioIcon =
-      hasAudio && !isPortal ? '<i class="bi bi-volume-up audio-icon"></i>' : "";
+      hasAudio && !isPortal && !isUrl
+        ? '<i class="bi bi-volume-up audio-icon"></i>'
+        : "";
     const portalIcon = isPortal
       ? '<i class="bi bi-arrow-right-circle-fill portal-icon"></i>'
       : "";
+    const urlIcon = isUrl ? '<i class="bi bi-link-45deg url-icon"></i>' : "";
 
     return {
       id: `marker-${marker.id}`,
@@ -141,17 +160,19 @@ export function initViewer(config) {
         yaw: parseFloat(marker.yaw),
         pitch: parseFloat(marker.pitch),
       },
-      html: `<div class="custom-marker ${audioClass} ${portalClass} ${
+      html: `<div class="custom-marker ${audioClass} ${portalClass} ${urlClass} ${
         isHighlighted ? "highlighted" : ""
       }" 
                         data-marker-id="${marker.id}" 
                         data-has-audio="${hasAudio}"
                         data-audio-path="${hasAudio ? marker.audio_path : ""}"
                         data-is-portal="${isPortal}"
+                        data-is-url="${isUrl}"
+                        data-url="${isUrl ? marker.url : ""}"
                         data-target-panorama="${
                           isPortal ? marker.target_panorama_id : ""
                         }"
-                        style="background: ${markerGradient}; border-color: ${borderColor};">${audioIcon}${portalIcon}</div>`,
+                        style="background: ${markerGradient}; border-color: ${borderColor};">${audioIcon}${portalIcon}${urlIcon}</div>`,
       anchor: "center center",
       tooltip: {
         content: tooltipContent,
@@ -184,7 +205,7 @@ export function initViewer(config) {
   async function loadMarkers() {
     try {
       const response = await fetch(
-        `/api.php?action=marker/list&panorama_id=${panoramaId}`
+        `/api.php?action=marker/list&panorama_id=${panoramaId}`,
       );
       const data = await response.json();
 
@@ -202,7 +223,7 @@ export function initViewer(config) {
 
     try {
       const response = await fetch(
-        `/api.php?action=panorama/user-list&exclude_id=${panoramaId}`
+        `/api.php?action=panorama/user-list&exclude_id=${panoramaId}`,
       );
       const data = await response.json();
 
@@ -268,20 +289,24 @@ export function initViewer(config) {
         const hasAudio = marker.audio_path && marker.audio_path.length > 0;
         const isPortal =
           marker.target_panorama_id && marker.target_panorama_id > 0;
+        const isUrl = marker.url && marker.url.length > 0;
         const audioIcon = hasAudio
           ? '<i class="bi bi-volume-up text-info me-1" title="Has audio"></i>'
           : "";
         const portalIcon = isPortal
           ? '<i class="bi bi-box-arrow-up-right text-success me-1" title="Portal to another scene"></i>'
           : "";
+        const urlIcon = isUrl
+          ? '<i class="bi bi-link-45deg text-primary me-1" title="URL link"></i>'
+          : "";
         return `
                 <div class="marker-list-item ${
                   isPortal ? "is-portal" : ""
                 }" data-marker-id="${
-          marker.id
-        }" onclick="window.viewerModule.navigateToMarker(${marker.id})">
+                  marker.id
+                }" onclick="window.viewerModule.navigateToMarker(${marker.id})">
                     <div class="marker-color-dot" style="background: ${colorHex};"></div>
-                    ${portalIcon}${audioIcon}
+                    ${portalIcon}${urlIcon}${audioIcon}
                     <span class="label">${escapeHtml(marker.label)}</span>
                     <i class="bi bi-chevron-right arrow"></i>
                 </div>
@@ -305,7 +330,8 @@ export function initViewer(config) {
     description,
     color,
     audioFile = null,
-    targetPanoramaId = null
+    targetPanoramaId = null,
+    url = null,
   ) {
     try {
       const formData = new FormData();
@@ -315,7 +341,10 @@ export function initViewer(config) {
       formData.append("label", label);
       formData.append("description", description);
       formData.append("color", color);
-      formData.append("type", targetPanoramaId ? "portal" : "text");
+      formData.append(
+        "type",
+        targetPanoramaId ? "portal" : url ? "url" : "text",
+      );
 
       if (audioFile) {
         formData.append("audio_file", audioFile);
@@ -323,6 +352,10 @@ export function initViewer(config) {
 
       if (targetPanoramaId) {
         formData.append("target_panorama_id", targetPanoramaId);
+      }
+
+      if (url) {
+        formData.append("url", url);
       }
 
       const response = await fetch("/api.php?action=marker/create", {
@@ -356,7 +389,8 @@ export function initViewer(config) {
     color,
     audioFile = null,
     removeAudio = false,
-    targetPanoramaId = null
+    targetPanoramaId = null,
+    url = null,
   ) {
     try {
       const formData = new FormData();
@@ -364,7 +398,10 @@ export function initViewer(config) {
       formData.append("label", label);
       formData.append("description", description);
       formData.append("color", color);
-      formData.append("type", targetPanoramaId ? "portal" : "text");
+      formData.append(
+        "type",
+        targetPanoramaId ? "portal" : url ? "url" : "text",
+      );
       formData.append("remove_audio", removeAudio ? "1" : "0");
 
       if (audioFile) {
@@ -373,6 +410,10 @@ export function initViewer(config) {
 
       if (targetPanoramaId) {
         formData.append("target_panorama_id", targetPanoramaId);
+      }
+
+      if (url) {
+        formData.append("url", url);
       }
 
       const response = await fetch("/api.php?action=marker/update", {
@@ -391,10 +432,11 @@ export function initViewer(config) {
           markersData[markerIndex].audio_path = data.marker.audio_path;
           markersData[markerIndex].target_panorama_id =
             data.marker.target_panorama_id;
+          markersData[markerIndex].url = data.marker.url;
           markersData[markerIndex].type = data.marker.type;
 
           markersPlugin.updateMarker(
-            createMarkerConfig(markersData[markerIndex])
+            createMarkerConfig(markersData[markerIndex]),
           );
           updateMarkerSidebar();
         }
@@ -481,7 +523,7 @@ export function initViewer(config) {
 
       if (currentPlayingMarkerId) {
         const markerEl = document.querySelector(
-          `[data-marker-id="${currentPlayingMarkerId}"]`
+          `[data-marker-id="${currentPlayingMarkerId}"]`,
         );
         if (markerEl) {
           markerEl.classList.remove("playing");
@@ -558,7 +600,7 @@ export function initViewer(config) {
   async function loadVoteStatus() {
     try {
       const response = await fetch(
-        `/api.php?action=vote/status&panorama_id=${panoramaId}`
+        `/api.php?action=vote/status&panorama_id=${panoramaId}`,
       );
       const data = await response.json();
 
@@ -625,7 +667,7 @@ export function initViewer(config) {
   async function exportData() {
     try {
       const response = await fetch(
-        `/api.php?action=panorama/export&panorama_id=${panoramaId}`
+        `/api.php?action=panorama/export&panorama_id=${panoramaId}`,
       );
       const data = await response.json();
 
@@ -687,6 +729,7 @@ export function initViewer(config) {
       document.getElementById("markerColor").value = "blue";
       document.getElementById("markerAudio").value = "";
       document.getElementById("markerTargetPanorama").value = "";
+      document.getElementById("markerUrl").value = "";
 
       document
         .querySelectorAll("#addColorPicker .color-option")
@@ -736,11 +779,12 @@ export function initViewer(config) {
         const audioFile =
           audioInput.files.length > 0 ? audioInput.files[0] : null;
         const targetPanoramaSelect = document.getElementById(
-          "markerTargetPanorama"
+          "markerTargetPanorama",
         );
         const targetPanoramaId = targetPanoramaSelect.value
           ? parseInt(targetPanoramaSelect.value)
           : null;
+        const url = document.getElementById("markerUrl").value.trim() || null;
 
         if (!label) {
           alert("Please enter a label for the marker");
@@ -759,7 +803,8 @@ export function initViewer(config) {
           description,
           color,
           audioFile,
-          targetPanoramaId
+          targetPanoramaId,
+          url,
         );
         if (success) {
           document.getElementById("addMarkerModal").classList.remove("show");
@@ -772,6 +817,11 @@ export function initViewer(config) {
 
       if (markerData && markerData.target_panorama_id && !editMode) {
         navigateToPortal(markerData.target_panorama_id);
+        return;
+      }
+
+      if (markerData && markerData.url && !editMode) {
+        window.open(markerData.url, "_blank", "noopener,noreferrer");
         return;
       }
 
@@ -795,9 +845,10 @@ export function initViewer(config) {
           markerData.color || "blue";
         document.getElementById("editRemoveAudio").value = "0";
         document.getElementById("editMarkerAudio").value = "";
+        document.getElementById("editMarkerUrl").value = markerData.url || "";
 
         const targetPanoramaSelect = document.getElementById(
-          "editMarkerTargetPanorama"
+          "editMarkerTargetPanorama",
         );
         if (targetPanoramaSelect) {
           targetPanoramaSelect.value = markerData.target_panorama_id || "";
@@ -819,7 +870,7 @@ export function initViewer(config) {
           .forEach((opt) => {
             opt.classList.toggle(
               "selected",
-              opt.dataset.color === (markerData.color || "blue")
+              opt.dataset.color === (markerData.color || "blue"),
             );
           });
 
@@ -842,12 +893,14 @@ export function initViewer(config) {
         const audioFile =
           audioInput.files.length > 0 ? audioInput.files[0] : null;
         const targetPanoramaSelect = document.getElementById(
-          "editMarkerTargetPanorama"
+          "editMarkerTargetPanorama",
         );
         const targetPanoramaId =
           targetPanoramaSelect && targetPanoramaSelect.value
             ? parseInt(targetPanoramaSelect.value)
             : null;
+        const url =
+          document.getElementById("editMarkerUrl").value.trim() || null;
 
         if (!label) {
           alert("Please enter a label for the marker");
@@ -866,7 +919,8 @@ export function initViewer(config) {
           color,
           audioFile,
           removeAudio,
-          targetPanoramaId
+          targetPanoramaId,
+          url,
         );
         if (success) {
           document.getElementById("editMarkerModal").classList.remove("show");
@@ -890,7 +944,7 @@ export function initViewer(config) {
       saveToCollectionBtn.addEventListener("click", () => {
         if (
           confirm(
-            "Save this panorama to your collection? You will be able to add your own markers."
+            "Save this panorama to your collection? You will be able to add your own markers.",
           )
         ) {
           forkPanorama();

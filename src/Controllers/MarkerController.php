@@ -19,7 +19,7 @@ class MarkerController
         'white' => '#ffffff'
     ];
 
-    public function create(int $panoramaId, float $yaw, float $pitch, string $label, string $description = '', string $type = 'text', string $color = 'blue', ?array $audioFile = null, ?int $targetPanoramaId = null): array
+    public function create(int $panoramaId, float $yaw, float $pitch, string $label, string $description = '', string $type = 'text', string $color = 'blue', ?array $audioFile = null, ?int $targetPanoramaId = null, ?string $url = null): array
     {
         if (!AuthController::isLoggedIn()) {
             return ['success' => false, 'error' => 'You must be logged in to create markers.'];
@@ -64,6 +64,13 @@ class MarkerController
             $type = 'portal';
         }
 
+        if ($url !== null && !empty($url)) {
+            if (!filter_var($url, FILTER_VALIDATE_URL)) {
+                return ['success' => false, 'error' => 'Invalid URL format.'];
+            }
+            $type = 'url';
+        }
+
         $audioPath = null;
         if ($audioFile !== null && isset($audioFile['tmp_name']) && !empty($audioFile['tmp_name'])) {
             $audioResult = $this->handleAudioUpload($audioFile);
@@ -75,9 +82,9 @@ class MarkerController
 
         try {
             Database::query(
-                "INSERT INTO markers (panorama_id, user_id, yaw, pitch, type, color, label, description, audio_path, target_panorama_id) 
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                [$panoramaId, $userId, $yaw, $pitch, $type, $color, $label, $description, $audioPath, $targetPanoramaId]
+                "INSERT INTO markers (panorama_id, user_id, yaw, pitch, type, color, label, description, audio_path, target_panorama_id, url) 
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                [$panoramaId, $userId, $yaw, $pitch, $type, $color, $label, $description, $audioPath, $targetPanoramaId, $url]
             );
 
             $markerId = Database::lastInsertId();
@@ -95,7 +102,8 @@ class MarkerController
                     'label' => $label,
                     'description' => $description,
                     'audio_path' => $audioPath,
-                    'target_panorama_id' => $targetPanoramaId
+                    'target_panorama_id' => $targetPanoramaId,
+                    'url' => $url
                 ]
             ];
         } catch (\PDOException $e) {
@@ -142,7 +150,7 @@ class MarkerController
         return $stmt->fetch() ?: null;
     }
 
-    public function update(int $id, string $label, string $description = '', string $type = 'text', string $color = 'blue', ?array $audioFile = null, bool $removeAudio = false, ?int $targetPanoramaId = null): array
+    public function update(int $id, string $label, string $description = '', string $type = 'text', string $color = 'blue', ?array $audioFile = null, bool $removeAudio = false, ?int $targetPanoramaId = null, ?string $url = null): array
     {
         if (!AuthController::isLoggedIn()) {
             return ['success' => false, 'error' => 'You must be logged in to update markers.'];
@@ -182,6 +190,13 @@ class MarkerController
             $type = 'portal';
         }
 
+        if ($url !== null && !empty($url)) {
+            if (!filter_var($url, FILTER_VALIDATE_URL)) {
+                return ['success' => false, 'error' => 'Invalid URL format.'];
+            }
+            $type = 'url';
+        }
+
         $audioPath = $marker['audio_path'] ?? null;
         
         if ($removeAudio) {
@@ -202,8 +217,8 @@ class MarkerController
 
         try {
             Database::query(
-                "UPDATE markers SET label = ?, description = ?, type = ?, color = ?, audio_path = ?, target_panorama_id = ? WHERE id = ?",
-                [$label, $description, $type, $color, $audioPath, $targetPanoramaId, $id]
+                "UPDATE markers SET label = ?, description = ?, type = ?, color = ?, audio_path = ?, target_panorama_id = ?, url = ? WHERE id = ?",
+                [$label, $description, $type, $color, $audioPath, $targetPanoramaId, $url, $id]
             );
 
             return [
@@ -214,7 +229,8 @@ class MarkerController
                     'type' => $type,
                     'color' => $color,
                     'audio_path' => $audioPath,
-                    'target_panorama_id' => $targetPanoramaId
+                    'target_panorama_id' => $targetPanoramaId,
+                    'url' => $url
                 ])
             ];
         } catch (\PDOException $e) {

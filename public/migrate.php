@@ -121,6 +121,15 @@ try {
         echo "✓ target_panorama_id column already exists\n";
     }
     
+    $stmt = $db->query("SHOW COLUMNS FROM markers LIKE 'url'");
+    if ($stmt->rowCount() == 0) {
+        echo "Adding url column to markers table...\n";
+        $db->exec("ALTER TABLE markers ADD COLUMN url VARCHAR(500) DEFAULT NULL AFTER target_panorama_id");
+        echo "✓ Added url column\n";
+    } else {
+        echo "✓ url column already exists\n";
+    }
+    
     echo "\n✅ Migration completed successfully!\n";
     
 } catch (PDOException $e) {

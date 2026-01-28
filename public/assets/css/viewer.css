@@ -148,7 +148,9 @@ html {
   height: 24px;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -199,6 +201,23 @@ html {
 .custom-marker.is-portal:hover {
   transform: scale(1.25);
   box-shadow: 0 0 20px rgba(25, 135, 84, 0.6);
+}
+
+.custom-marker.is-url {
+  width: 28px;
+  height: 28px;
+  border-width: 3px;
+}
+
+.custom-marker.is-url .url-icon {
+  color: white;
+  font-size: 13px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.custom-marker.is-url:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 15px rgba(13, 110, 253, 0.6);
 }
 
 @keyframes audio-pulse {
@@ -288,7 +307,9 @@ html {
   border-radius: 50%;
   cursor: pointer;
   border: 3px solid transparent;
-  transition: transform 0.2s, border-color 0.2s;
+  transition:
+    transform 0.2s,
+    border-color 0.2s;
 }
 
 .color-option:hover {

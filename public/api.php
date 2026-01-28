@@ -41,12 +41,13 @@ try {
             $type = trim($inputData['type'] ?? 'text');
             $color = trim($inputData['color'] ?? 'blue');
             $targetPanoramaId = !empty($inputData['target_panorama_id']) ? (int)$inputData['target_panorama_id'] : null;
+            $url = !empty($inputData['url']) ? trim($inputData['url']) : null;
             
             $audioFile = isset($_FILES['audio_file']) && $_FILES['audio_file']['error'] !== UPLOAD_ERR_NO_FILE 
                          ? $_FILES['audio_file'] 
                          : null;
             
-            $result = $markerController->create($panoramaId, $yaw, $pitch, $label, $description, $type, $color, $audioFile, $targetPanoramaId);
+            $result = $markerController->create($panoramaId, $yaw, $pitch, $label, $description, $type, $color, $audioFile, $targetPanoramaId, $url);
             
             if (!$result['success']) {
                 http_response_code(400);
@@ -111,12 +112,13 @@ try {
             $color = trim($inputData['color'] ?? 'blue');
             $removeAudio = filter_var($inputData['remove_audio'] ?? false, FILTER_VALIDATE_BOOLEAN);
             $targetPanoramaId = !empty($inputData['target_panorama_id']) ? (int)$inputData['target_panorama_id'] : null;
+            $url = !empty($inputData['url']) ? trim($inputData['url']) : null;
             
             $audioFile = isset($_FILES['audio_file']) && $_FILES['audio_file']['error'] !== UPLOAD_ERR_NO_FILE 
                          ? $_FILES['audio_file'] 
                          : null;
             
-            $result = $markerController->update($markerId, $label, $description, $type, $color, $audioFile, $removeAudio, $targetPanoramaId);
+            $result = $markerController->update($markerId, $label, $description, $type, $color, $audioFile, $removeAudio, $targetPanoramaId, $url);
             
             if (!$result['success']) {
                 http_response_code(400);

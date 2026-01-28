@@ -56,6 +56,14 @@
                         </select>
                         <div class="form-text">Create a portal that navigates to another panorama when clicked.</div>
                     </div>
+                    <div class="mb-3">
+                        <label for="markerUrl" class="form-label">
+                            <i class="bi bi-link-45deg"></i> External Link (URL Marker)
+                        </label>
+                        <input type="url" class="form-control" id="markerUrl" name="url" 
+                               placeholder="https://example.com">
+                        <div class="form-text">Opens an external URL in a new tab when clicked.</div>
+                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -131,6 +139,14 @@
                             <option value="">No link (regular marker)</option>
                         </select>
                         <div class="form-text">Create a portal that navigates to another panorama when clicked.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editMarkerUrl" class="form-label">
+                            <i class="bi bi-link-45deg"></i> External Link (URL Marker)
+                        </label>
+                        <input type="url" class="form-control" id="editMarkerUrl" name="url" 
+                               placeholder="https://example.com">
+                        <div class="form-text">Opens an external URL in a new tab when clicked.</div>
                     </div>
                 </form>
             </div>
